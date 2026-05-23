@@ -34,7 +34,7 @@
 
 ## 使用方法 <sub>Usage</sub>
 
-1. 请[**前往此页面**](https://github.com/Lymeeee/The-Beike-MD3/releases)下载适合你的操作系统的程序文件。
+1. 请[**前往此页面**](https://github.com/Lymeeee/The-Beike-MD3/releases)下载适合你的操作系统的程序文件
 2. 安卓版请下载apk并且无视风险强行安装
 3. Windows版请下载zip并且解压到任意一个你认为合适的文件夹内，双击the_beike.exe运行
 4. Linux版由于手上没设备所以没法编译，请见谅
@@ -42,12 +42,10 @@
 ## 关 于 <sub>About</sub>
 
 ### 参与贡献
-
-欢迎任何形式的贡献！如果你有任何想法或建议，或者发现了任何问题，请随时在 GitHub 上提交 Issue 或 Pull Request。
+欢迎！如果你有任何想法或建议，或发现了任何问题，请随时提交Issue
 
 ### 许可证
-
-本项目基于 **GPL3协议**。任何人都可以自由地使用和修改项目内的源代码，前提是要在源代码或版权声明中保留作者说明和原有协议，且使用相同的许可证进行开源。
+本项目基于 **GPL3协议**。任何人都可以自由地使用和修改项目内的源代码，前提是要在源代码或版权声明中保留作者说明和原有协议，且使用相同的许可证进行开源
 
 ### 感谢原作者isHarryh和YOOkoishi的贡献！
 ### 原作者仓库：https://github.com/isHarryh/The-Beike
