@@ -20,13 +20,10 @@
 ### 实现的功能
 
 1. 📚**支持北科教务系统相关功能。**  
-    可登录北科本研一体教务账号；可查课表、选课、查考场和查成绩。
-2. 📶**支持北科校园网自助服务系统相关功能。**  
-    可登录北科校园网自服务账号；可查询流量使用情况和每月账单详情；可以管理入网设备、修改密码和修改限额。
-3. 🔁**支持跨设备同步配置数据。**  
-    可以通过配对码为不同设备上的软件进行配置数据同步。
-4. ✨**全新外观。**
-    符合谷歌安卓原生Material Design 3风格，支持Monet取色。
+    (可登录北科本研一体教务账号；可查课表、选课、查考场和查成绩。)
+2. 📶**支持所有北科校园网自助服务系统功能**
+3. 🔁**支持跨设备同步配置数据**  
+4. ✨**全新Material Design 3风格，支持Monet取色**
 
 ### 支持的平台
 
@@ -39,54 +36,6 @@
 
 1. 请[**前往此页面**](https://github.com/Lymeeee/The-Beike-MD3/releases)下载适合你的操作系统的程序文件。
 2. 安装或解压下载的文件，并运行程序即可。
-
-## 开发指南 <sub>Development</sub>
-
-本项目基于 **Flutter** 框架编写，使用 **Dart** 语言。
-
-### 开发环境准备
-
-1. 安装 [Git](https://git-scm.com/install/) 和 [VS Code](https://code.visualstudio.com/download)；
-3. 安装 VS Code 的 [Flutter 插件](https://marketplace.visualstudio.com/items?itemName=Dart-Code.flutter)；
-2. 参考[《Flutter 快速开始》](https://docs.flutter.dev/install/quick)文档来安装 Flutter SDK；
-4. 使用 Git 克隆本仓库到本地；
-5. 在项目文件夹中运行 `flutter pub get` 来下载依赖。
-
-### 构建与打包
-
-<details>
-<summary>💡本地构建指引（展开详情）</summary>
-<br>
-
-- Android 通用安装包构建：  
-    执行命令行
-    ```bash
-    flutter build apk --release --obfuscate --split-debug-info=build/symbols
-    ```
-    输出文件位于 `build/app/outputs/flutter-apk`。
-
-- Windows 发行文件构建：  
-    执行命令行
-    ```bash
-    flutter build windows --release --obfuscate --split-debug-info=build/symbols
-    ```
-    输出文件位于 `build/windows/x64/runner/Release` 文件夹中。
-
-- Windows 安装程序打包：  
-    安装 [Inno Setup](https://jrsoftware.org/isdl.php) 并构建发行文件后，执行命令行
-    ```bash
-    iscc windows/packaging/packaging.iss
-    ```
-    输出文件位于 `dist` 文件夹中。
-
-- Linux 发行文件构建：  
-    执行命令行
-    ```bash
-    flutter build linux --release --obfuscate --split-debug-info=build/symbols
-    ```
-    输出文件位于 `build/linux/x64/release/bundle` 文件夹中。
-
-</details>
 
 ## 关 于 <sub>About</sub>
 
