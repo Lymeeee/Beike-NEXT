@@ -1,0 +1,8 @@
+{
+    "cmake.ignoreCMakeListsMissing": true,
+    "cSpell.words": [
+        "beike",
+        "ustb"
+    ],
+    "editor.formatOnSave": true,
+}
