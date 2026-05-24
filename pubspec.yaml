@@ -118,4 +118,5 @@ flutter_launcher_icons:
     generate: true
     icon_size: 256
   android: true
-  ios: false
+  ios: true
+  macos: true

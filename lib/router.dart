@@ -44,6 +44,10 @@ const _bottomTabs = [
   ),
 ];
 
+/// Tracks the last user-selected tab index so sub-page navigation
+/// doesn't shift the bottom bar highlight.
+int _lastUserTabIndex = 0;
+
 class AppRouter {
   static final router = RootStackRouter.build(
     routes: [
@@ -128,27 +132,22 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   int get _selectedTabIndex {
+    // When on a tab root path, update the tracked index and return it.
     for (int i = 0; i < _bottomTabs.length; i++) {
-      for (final prefix in _bottomTabs[i].pathPrefixes) {
-        if (prefix == '/' && _currentPath == '/') return i;
-        if (prefix != '/' && _currentPath.startsWith(prefix)) return i;
+      if (_currentPath == _bottomTabs[i].rootPath) {
+        _lastUserTabIndex = i;
+        return i;
       }
     }
-    return 0;
+    // On sub-pages, keep the last user-selected tab so the
+    // bottom bar doesn't jump around.
+    return _lastUserTabIndex;
   }
 
   void _onTabSelected(int index) {
+    _lastUserTabIndex = index;
     final tab = _bottomTabs[index];
-    final currentTabIndex = _selectedTabIndex;
-
-    if (currentTabIndex == index) {
-      // Already on this tab — pop back to root
-      if (_currentPath != tab.rootPath) {
-        context.router.replacePath(tab.rootPath);
-      }
-    } else {
-      context.router.replacePath(tab.rootPath);
-    }
+    context.router.replacePath(tab.rootPath);
   }
 
   @override
@@ -172,7 +171,9 @@ class _MainLayoutState extends State<MainLayout> {
       ),
     );
 
-    return _currentPath == '/'
+    final isTabRoot =
+        _bottomTabs.any((tab) => tab.rootPath == _currentPath);
+    return isTabRoot
         ? DoubleBackToExitWrapper(child: content)
         : CommonPopWrapper(child: content);
   }

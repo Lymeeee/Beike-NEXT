@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
-import '/utils/app_bar.dart';
 import '/main.dart';
 import '/types/preferences.dart';
 
@@ -20,9 +19,14 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const PageAppBar(title: '设置'),
       body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
+          SizedBox(height: MediaQuery.of(context).padding.top + 16),
+          const Text(
+            '设置',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           _buildAppearanceSection(),
           _buildDataSection(),

@@ -8,6 +8,8 @@ abstract class UnifiedAppBar extends StatelessWidget
   final List<Widget>? actions;
   final Widget? leading;
   final bool autoImplyLeading;
+  final double titleSpacing;
+  final TextStyle? titleTextStyle;
 
   const UnifiedAppBar({
     super.key,
@@ -15,6 +17,8 @@ abstract class UnifiedAppBar extends StatelessWidget
     this.actions,
     this.leading,
     this.autoImplyLeading = true,
+    this.titleSpacing = 8,
+    this.titleTextStyle,
   });
 
   Color getBackgroundColor(BuildContext context);
@@ -23,8 +27,8 @@ abstract class UnifiedAppBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: Text(title),
-      titleSpacing: 8,
+      title: Text(title, style: titleTextStyle),
+      titleSpacing: titleSpacing,
       actions: actions,
       leading: leading,
       automaticallyImplyLeading: autoImplyLeading,
@@ -60,6 +64,8 @@ class PageAppBar extends UnifiedAppBar {
     super.actions,
     super.leading,
     super.autoImplyLeading = true,
+    super.titleSpacing = 8,
+    super.titleTextStyle,
   }) : super();
 
   @override
