@@ -28,7 +28,6 @@ class WidgetUpdater {
       return;
     }
 
-    final isOngoing = ongoingClass != null;
     final startTime = targetClass.getMinStartTime(data.allPeriods);
     final endTime = targetClass.getMaxEndTime(data.allPeriods);
 
@@ -40,7 +39,7 @@ class WidgetUpdater {
 
     _send({
       'hasClass': true,
-      'label': isOngoing ? '进行中' : '接下来',
+      'label': '接下来',
       'className': targetClass.className,
       'timeRange': timeRange ?? targetClass.periodName,
       'location': targetClass.locationName,
