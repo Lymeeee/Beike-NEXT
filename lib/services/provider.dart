@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '/services/courses/base.dart';
+import '/services/widget_updater.dart';
 import '/services/courses/ustb_byyt.dart';
 import '/services/courses/exceptions.dart';
 import '/services/store/base.dart';
@@ -184,6 +185,9 @@ class ServiceProvider extends ChangeNotifier {
       "curriculum_data",
       integratedData,
     );
+
+    // Update widget
+    WidgetUpdater().updateFromCurriculum(integratedData);
 
     return integratedData;
   }

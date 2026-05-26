@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
 import '/utils/page_mixins.dart';
+import '/services/widget_updater.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
 import '/types/sync.dart';
@@ -149,6 +150,8 @@ class _HomePageState extends State<HomePage>
       if (mounted) {
         final newOngoingClass = curriculumData?.getClassOngoing();
         final newUpcomingClass = curriculumData?.getClassUpcoming();
+
+        WidgetUpdater().updateFromCurriculum(curriculumData);
 
         if (_ongoingClass != newOngoingClass ||
             _upcomingClass != newUpcomingClass ||

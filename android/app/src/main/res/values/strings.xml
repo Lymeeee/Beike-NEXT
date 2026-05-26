@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TheBeike</string>
+    <string name="widget_label_upcoming">接下来</string>
+    <string name="widget_label_no_class">今天没有课了</string>
+    <string name="widget_description">显示下一节即将开始的课程</string>
 </resources>
