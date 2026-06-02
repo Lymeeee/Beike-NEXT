@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "main"
+    tags:
+      - "v*"
   pull_request:
     branches:
       - "main"
@@ -12,6 +14,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   build_linux:
@@ -36,3 +41,56 @@ jobs:
 
       - name: Build Linux
         run: flutter build linux --release
+
+    # ✨ 核心改动：强化版的 AppImage 打包步骤
+      - name: Build AppImage
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          # 1. 自动侦测 Flutter 编译出来的可执行文件名
+          APP_NAME=$(basename $(find build/linux/x64/release/bundle -maxdepth 1 -type f -executable))
+          echo "识别到应用名称为: $APP_NAME"
+          
+          # 2. 创建 AppImage 所需的 AppDir 目录结构
+          mkdir -p AppDir
+          cp -r build/linux/x64/release/bundle AppDir/
+          
+          # 3. 写入引导脚本 AppRun
+          cat << 'EOF' > AppDir/AppRun
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/bundle/$APP_NAME" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+          # 4. 写入桌面快捷方式描述文件
+          cat << EOF > AppDir/$APP_NAME.desktop
+          [Desktop Entry]
+          Name=$APP_NAME
+          Exec=AppRun
+          Icon=icon
+          Type=Application
+          Categories=Utility;
+          EOF
+          
+          # 5. 魔法时间：生成一个合法的 1x1 透明 PNG 图片作为伪装图标，防止新版工具报错
+          echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" | base64 -d > AppDir/icon.png
+          
+          # 6. 使用 curl 下载最新仓库位置的 appimagetool（去掉静默模式，方便以后看日志排错）
+          curl -Lo appimagetool-x86_64.AppImage "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool-x86_64.AppImage
+          
+          # 7. 施展魔法：利用解压运行模式，绕过 GitHub Actions 没有 FUSE 的限制，成功打包！
+          export ARCH=x86_64
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir ${APP_NAME}-x86_64.AppImage
+          
+          # 8. 把生成的 AppImage 文件名存进环境变量，方便下一步上传
+          echo "RELEASE_FILE=${APP_NAME}-x86_64.AppImage" >> $GITHUB_ENV
+
+      # ✨ 上传我们热腾腾的 AppImage 到 Release 页面
+      - name: Upload AppImage to GitHub Release
+        uses: softprops/action-gh-release@v3
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          files: ${{ env.RELEASE_FILE }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          generate_release_notes: true
