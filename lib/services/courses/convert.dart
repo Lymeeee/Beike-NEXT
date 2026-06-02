@@ -117,8 +117,8 @@ extension ClassItemUstbByytExtension on ClassItem {
   static List<int> _parseWeeks(String weeksText) {
     final weeks = <int>[];
 
-    // 移除"周"字符，保留数字、逗号、横线
-    final cleanText = weeksText.replaceAll('周', '').trim();
+    // 替换中文逗号，移除"周"字符
+    final cleanText = weeksText.replaceAll('，', ',').replaceAll('周', '').trim();
 
     // 按逗号分割不同的周期段
     final segments = cleanText.split(',');
@@ -127,21 +127,41 @@ extension ClassItemUstbByytExtension on ClassItem {
       final trimmedSegment = segment.trim();
       if (trimmedSegment.isEmpty) continue;
 
-      if (trimmedSegment.contains('-')) {
-        // 处理范围，如 "1-8" 或 "9-16"
-        final parts = trimmedSegment.split('-');
+      // 检测单/双周标记
+      bool? oddOnly;
+      if (trimmedSegment.contains('单')) {
+        oddOnly = true;
+      } else if (trimmedSegment.contains('双')) {
+        oddOnly = false;
+      }
+
+      // 移除单/双标记以便解析数字
+      final numberSegment = trimmedSegment
+          .replaceAll('单', '')
+          .replaceAll('双', '')
+          .trim();
+
+      if (numberSegment.contains('-')) {
+        // 处理范围，如 "1-8" 或 "9-16单"
+        final parts = numberSegment.split('-');
         if (parts.length == 2) {
           final start = int.tryParse(parts[0].trim());
           final end = int.tryParse(parts[1].trim());
           if (start != null && end != null && start <= end) {
             for (int i = start; i <= end; i++) {
-              weeks.add(i);
+              if (oddOnly == null) {
+                weeks.add(i);
+              } else if (oddOnly == true && i.isOdd) {
+                weeks.add(i);
+              } else if (oddOnly == false && i.isEven) {
+                weeks.add(i);
+              }
             }
           }
         }
       } else {
         // 处理单个周次，如 "1" 或 "3"
-        final week = int.tryParse(trimmedSegment);
+        final week = int.tryParse(numberSegment);
         if (week != null) {
           weeks.add(week);
         }

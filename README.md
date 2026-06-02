@@ -2,16 +2,16 @@
 
 
 
-<!-- 欢迎使用 The-Beike 大贝壳 -->
-<!-- 仓库：https://github.com/Lymeeee/The-Beike-MD3 -->
+<!-- 欢迎使用 大贝壳NEXT -->
+<!-- 仓库：https://github.com/Lymeeee/Beike-NEXT -->
 
 <!--suppress HtmlDeprecatedAttribute -->
 <div align="center" style="text-align:center">
-    <h1> The-Beike </h1>
+    <h1> Beike-NEXT </h1>
     <p>
         The Integrated Campus Assistant for USTB
         <br>
-        大贝壳NEXT：北京科技大学校园助手 (MD3UI修改版)
+        大贝壳NEXT：北京科技大学校园助手
     </p>
 </div>
 
@@ -21,25 +21,23 @@
 
 1. 📚**支持北科教务系统相关功能**  
     (可登录北科本研一体教务账号；可看课表、选课、查考场、查成绩)
-2. 📶**支持所有北科校园网自助服务系统功能**
+2. 📶**支持所有北科校园网自助服务系统功能，也可使用电表号查询电费**
 3. ✨**全新Material Design 3风格，支持原生安卓Monet取色**
-4. 📰**安卓版支持桌面小组件，扫一眼即可知道下一节课程**
+4. 📰**安卓/mac/ios端支持桌面小组件，扫一眼即可知道下一节课程**
 
 ### 支持的平台
 
 | Android | Windows | Linux |  MacOS  |   iOS   | 鸿蒙 |
 | :-----: | :-----: | :---: | :-----: | :-----: | :---: |
-|  ✅支持  |  ✅支持  | ⏰计划中 | ⏰计划中 | ⏰计划中 | ❌无法支持 |
+|  ✅支持  |  ✅支持  | ✅支持 | ✅支持 | ✅支持 | ❌不考虑 |
 
 
 ## 使用方法 <sub>Usage</sub>
 
-1. 请[**前往此页面**](https://github.com/Lymeeee/The-Beike-MD3/releases)下载适合你的操作系统的程序文件
+1. 请[**前往此页面**](https://github.com/Lymeeee/Beike-NEXT/releases)下载适合你的操作系统的程序文件
 2. 安卓版请下载apk并且无视风险强行安装
 3. Windows版请下载zip并且解压到任意一个你认为合适的文件夹内，双击the_beike.exe运行
-4. Linux版由于手上没设备所以没法编译，请见谅
-5. Mac和ios版其实是还没编译出来，bug修完会发布的
-6. iOS版需要自签，巨魔或越狱才能安装，由于财力有限故不会上架app store
+4. iOS版需要自签，巨魔或越狱才能安装，由于财力有限故不会上架app store
 ## 关 于 <sub>About</sub>
 
 ### 参与贡献

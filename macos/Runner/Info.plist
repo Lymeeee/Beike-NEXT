@@ -33,21 +33,5 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs location access to provide relevant services.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs location access to provide relevant services.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>This app needs camera access to provide relevant services.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs microphone access to provide relevant services.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs photo library access to provide relevant services.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>This app needs calendar access to provide relevant services.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>This app needs contacts access to provide relevant services.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>This app needs Bluetooth access to provide relevant services.</string>
 </dict>
 </plist>

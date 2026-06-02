@@ -14,15 +14,19 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CHANNEL
         ).setMethodCallHandler { call, result ->
-            if (call.method == "updateUpcomingClass") {
-                val data = call.arguments as? String
-                if (data != null) {
-                    UpcomingClassWidget.saveData(this, data)
-                    UpcomingClassWidget.updateAllWidgets(this)
+            when (call.method) {
+                "updateCurriculumData" -> {
+                    val data = call.arguments as? String
+                    if (data != null) {
+                        UpcomingClassWidget.saveFullData(this, data)
+                        UpcomingClassWidget.updateAllWidgets(this)
+                    }
+                    result.success(null)
                 }
-                result.success(null)
-            } else {
-                result.notImplemented()
+                "updateUpcomingClass" -> {
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
         }
     }

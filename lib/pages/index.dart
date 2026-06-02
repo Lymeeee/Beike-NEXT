@@ -445,12 +445,17 @@ class _HomePageState extends State<HomePage>
     if (_ongoingClass != null) classes.add(_ongoingClass);
     if (_upcomingClass != null) classes.add(_upcomingClass);
 
-    return Wrap(
-      spacing: 8,
-      children: classes.map((classItem) {
-        final isOngoing = classItem == _ongoingClass;
-        return _buildSingleClassPreview(classItem!, isOngoing);
-      }).toList(),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(classes.length, (i) {
+          final isOngoing = classes[i] == _ongoingClass;
+          return Padding(
+            padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+            child: _buildSingleClassPreview(classes[i]!, isOngoing),
+          );
+        }),
+      ),
     );
   }
 
