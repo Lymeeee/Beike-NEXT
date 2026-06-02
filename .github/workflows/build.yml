@@ -5,7 +5,7 @@ on:
     branches:
       - "main"
     tags:
-      - "v*" # ✨ 加上这一行！当推送形如 v1.0.0 的 tag 时就会自动触发发布啦
+      - "v*"
   pull_request:
     branches:
       - "main"
@@ -15,7 +15,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# 🔴 关键改动 1：必须要加上这一段，赋予当前工作流写入 Release 的权限！
 permissions:
   contents: write
 
@@ -43,18 +42,56 @@ jobs:
       - name: Build Linux
         run: flutter build linux --release
 
-      # 🔴 关键改动 2：把 Flutter 的整个 bundle 编译产物打包成一个 tar.gz 压缩包
-      - name: Package Linux Build
+      # ✨ 核心改动：把 bundle 变身成为完美的 AppImage！
+      - name: Build AppImage
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: |
-          tar -czf flutter-linux-app.tar.gz -C build/linux/x64/release bundle
+          # 1. 自动侦测 Flutter 编译出来的可执行文件名（不需要你手动硬编码哦！）
+          APP_NAME=$(basename $(find build/linux/x64/release/bundle -maxdepth 1 -type f -executable))
+          echo "识别到应用名称为: $APP_NAME"
+          
+          # 2. 创建 AppImage 所需的 AppDir 目录结构
+          mkdir -p AppDir
+          cp -r build/linux/x64/release/bundle AppDir/
+          
+          # 3. 写入引导脚本 AppRun（告诉系统怎么启动这个 AppImage）
+          cat << 'EOF' > AppDir/AppRun
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/bundle/$APP_NAME" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+          # 4. 写入桌面快捷方式描述文件
+          cat << EOF > AppDir/$APP_NAME.desktop
+          [Desktop Entry]
+          Name=$APP_NAME
+          Exec=AppRun
+          Icon=icon
+          Type=Application
+          Categories=Utility;
+          EOF
+          
+          # 5. 生成一个虚拟图标（appimagetool 校验必须要有图标）
+          # 💡 小贴士：如果你有自己的 png 图标，可以用 cp 替换掉这一行，比如 cp assets/logo.png AppDir/icon.png
+          touch AppDir/icon.png
+          
+          # 6. 下载官方 appimagetool 
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          
+          # 7. 施展魔法：利用解压运行模式，绕过 GitHub Actions 没有 FUSE 的限制，成功打包！
+          export ARCH=x86_64
+          ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir ${APP_NAME}-x86_64.AppImage
+          
+          # 8. 把生成的 AppImage 文件名存进环境变量，方便下一步上传
+          echo "RELEASE_FILE=${APP_NAME}-x86_64.AppImage" >> $GITHUB_ENV
 
-      # 🔴 关键改动 3：使用 softprops/action-gh-release 插件上传到 Release
-      - name: Upload to GitHub Release
+      # ✨ 上传我们热腾腾的 AppImage 到 Release 页面
+      - name: Upload AppImage to GitHub Release
         uses: softprops/action-gh-release@v3
-        # 💡 只有在推送 tag 或者手动触发工作流时才执行发布，防止普通 commit 或 PR 刷屏报错
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          files: flutter-linux-app.tar.gz
-          # 如果是 tag 触发就用 tag 名，如果是手动触发就默认归类到 "latest" 滚动发布里
+          files: ${{ env.RELEASE_FILE }}
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          generate_release_notes: true
