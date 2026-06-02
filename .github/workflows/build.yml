@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "main"
+    tags:
+      - "v*" # ✨ 加上这一行！当推送形如 v1.0.0 的 tag 时就会自动触发发布啦
   pull_request:
     branches:
       - "main"
@@ -12,6 +14,10 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# 🔴 关键改动 1：必须要加上这一段，赋予当前工作流写入 Release 的权限！
+permissions:
+  contents: write
 
 jobs:
   build_linux:
@@ -36,3 +42,19 @@ jobs:
 
       - name: Build Linux
         run: flutter build linux --release
+
+      # 🔴 关键改动 2：把 Flutter 的整个 bundle 编译产物打包成一个 tar.gz 压缩包
+      - name: Package Linux Build
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          tar -czf flutter-linux-app.tar.gz -C build/linux/x64/release bundle
+
+      # 🔴 关键改动 3：使用 softprops/action-gh-release 插件上传到 Release
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v3
+        # 💡 只有在推送 tag 或者手动触发工作流时才执行发布，防止普通 commit 或 PR 刷屏报错
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          files: flutter-linux-app.tar.gz
+          # 如果是 tag 触发就用 tag 名，如果是手动触发就默认归类到 "latest" 滚动发布里
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
