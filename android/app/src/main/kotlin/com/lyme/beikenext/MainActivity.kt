@@ -1,11 +1,11 @@
-package cn.thebeike.app
+package com.lyme.beikenext
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "cn.thebeike.app/widget"
+    private val CHANNEL = "com.lyme.beikenext/widget"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

@@ -135,6 +135,7 @@ ClassItem _$ClassItemFromJson(Map<String, dynamic> json) =>
         periodName: json['periodName'] as String,
         periodNameAlt: json['periodNameAlt'] as String?,
         colorId: (json['colorId'] as num?)?.toInt(),
+        isCustom: json['isCustom'] as bool? ?? false,
       )
       ..$lastUpdateTime = _$JsonConverterFromJson<String, DateTime>(
         json[r'$lastUpdateTime'],
@@ -159,6 +160,7 @@ Map<String, dynamic> _$ClassItemToJson(ClassItem instance) => <String, dynamic>{
   'periodName': instance.periodName,
   'periodNameAlt': instance.periodNameAlt,
   'colorId': instance.colorId,
+  'isCustom': instance.isCustom,
 };
 
 ClassPeriod _$ClassPeriodFromJson(Map<String, dynamic> json) =>

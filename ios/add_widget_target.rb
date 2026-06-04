@@ -49,7 +49,7 @@ widget_target = project.new_target(
 widget_target.build_configurations.each do |config|
   config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
   config.build_settings['INFOPLIST_FILE'] = 'UpcomingClassWidget/Info.plist'
-  config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'cn.thebeike.app.UpcomingClassWidget'
+  config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.lyme.beikenext.UpcomingClassWidget'
   config.build_settings['PRODUCT_NAME'] = '$(TARGET_NAME)'
   config.build_settings['SWIFT_VERSION'] = '5.0'
   config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'

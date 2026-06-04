@@ -179,8 +179,13 @@ class AppSettings extends BaseDataClass {
   ThemeMode themeMode;
   @JsonKey(name: 'accentColor')
   int? accentColorValue;
+  bool classReminderEnabled;
 
-  AppSettings({required this.themeMode, this.accentColorValue});
+  AppSettings({
+    required this.themeMode,
+    this.accentColorValue,
+    this.classReminderEnabled = false,
+  });
 
   Color? get accentColor =>
       accentColorValue != null ? Color(accentColorValue!) : null;
@@ -189,6 +194,7 @@ class AppSettings extends BaseDataClass {
   Map<String, dynamic> getEssentials() => {
     'themeMode': themeMode,
     'accentColor': accentColorValue,
+    'classReminderEnabled': classReminderEnabled,
   };
 
   static final AppSettings defaultSettings = AppSettings(

@@ -24,6 +24,8 @@ class CurriculumTable extends StatelessWidget {
   final CurriculumSettings settings;
   final Map<int, int> weekDates;
   final int currentWeek;
+  final void Function(int day, int period)? onTripleTapEmptyCell;
+  final void Function(ClassItem classItem)? onTapCustomCourse;
 
   const CurriculumTable({
     super.key,
@@ -32,6 +34,8 @@ class CurriculumTable extends StatelessWidget {
     required this.settings,
     required this.weekDates,
     required this.currentWeek,
+    this.onTripleTapEmptyCell,
+    this.onTapCustomCourse,
   });
 
   List<ClassItem> get weekClasses => curriculumData.allClasses
@@ -41,6 +45,10 @@ class CurriculumTable extends StatelessWidget {
   static const List<String> dayNames = ['一', '二', '三', '四', '五', '六', '日'];
 
   void _showClassDetails(BuildContext context, ClassItem classItem) {
+    if (classItem.isCustom && onTapCustomCourse != null) {
+      onTapCustomCourse!(classItem);
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -341,7 +349,12 @@ class CurriculumTable extends StatelessWidget {
         children: [
           Positioned.fill(
             child: classesInSlot.isEmpty
-                ? const SizedBox.expand()
+                ? _TripleTapDetector(
+                    onTripleTap: onTripleTapEmptyCell != null
+                        ? () => onTripleTapEmptyCell!(day, majorPeriod.id)
+                        : null,
+                    child: const SizedBox.expand(),
+                  )
                 : _buildClassContent(context, classesInSlot, settings, classColors!.foreground),
           ),
         ],
@@ -414,14 +427,14 @@ class CurriculumTable extends StatelessWidget {
         Expanded(
           child: Center(
             child: Text(
-              firstClass.className,
+              firstClass.className.replaceAll('\n', ' '),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: foregroundColor,
               ),
               textAlign: TextAlign.center,
-              maxLines: maxLines,
+              maxLines: 1,
               overflow: TextOverflow.fade,
             ),
           ),
@@ -431,7 +444,7 @@ class CurriculumTable extends StatelessWidget {
             firstClass.locationName,
             style: TextStyle(fontSize: 10, color: foregroundColor.withValues(alpha: 0.7)),
             textAlign: TextAlign.center,
-            maxLines: maxLines,
+            maxLines: 1,
             overflow: TextOverflow.fade,
           ),
         if (classesInSlot.length > 1)
@@ -532,5 +545,42 @@ class CurriculumTable extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+class _TripleTapDetector extends StatefulWidget {
+  final VoidCallback? onTripleTap;
+  final Widget child;
+
+  const _TripleTapDetector({this.onTripleTap, required this.child});
+
+  @override
+  State<_TripleTapDetector> createState() => _TripleTapDetectorState();
+}
+
+class _TripleTapDetectorState extends State<_TripleTapDetector> {
+  int _tapCount = 0;
+  DateTime _firstTap = DateTime.now();
+
+  void _handleTap() {
+    final now = DateTime.now();
+    if (now.difference(_firstTap).inMilliseconds > 600) {
+      _tapCount = 0;
+      _firstTap = now;
+    }
+    _tapCount++;
+    if (_tapCount >= 3) {
+      _tapCount = 0;
+      widget.onTripleTap?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTripleTap != null ? _handleTap : null,
+      behavior: HitTestBehavior.opaque,
+      child: widget.child,
+    );
   }
 }

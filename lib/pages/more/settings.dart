@@ -1,22 +1,23 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
+import '/services/class_reminder_service.dart';
 import '/main.dart';
 import '/types/preferences.dart';
 
 const _accentPresets = [
   null,
-  Color(0xFF005B94),
-  Color(0xFF1B6EF3),
-  Color(0xFF6750A4),
-  Color(0xFFBA1A1A),
-  Color(0xFF9C4040),
-  Color(0xFF006D3B),
-  Color(0xFF006A6A),
-  Color(0xFFB50071),
-  Color(0xFF7A5900),
-  Color(0xFFE65100),
-  Color(0xFF00668C),
+  Color(0xFF005B94), // 北科蓝
+  Color(0xFF9BABB8), // 灰蓝
+  Color(0xFFA3B0A1), // 鼠尾草绿
+  Color(0xFFC2AEA6), // 烟灰粉
+  Color(0xFFB4ADBC), // 薰衣草灰
+  Color(0xFFBBAFA0), // 暖灰褐
+  Color(0xFF9AB5AF), // 雾蓝绿
+  Color(0xFFAEA3B9), // 紫藤灰
+  Color(0xFFABB09B), // 橄榄灰
+  Color(0xFF93AAB5), // 雾霾蓝
+  Color(0xFFC59D90), // 陶土粉
 ];
 
 class SettingsPage extends StatefulWidget {
@@ -37,10 +38,18 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          SizedBox(height: MediaQuery.of(context).padding.top + 16),
-          _buildThemeModeRow(),
+          SizedBox(height: MediaQuery.of(context).padding.top + 48),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildThemeModeRow(),
+          ),
           const SizedBox(height: 16),
-          _buildAccentColorPicker(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildAccentColorPicker(),
+          ),
+          const SizedBox(height: 24),
+          _buildReminderToggle(),
           const SizedBox(height: 24),
           _buildDataSection(),
           if (kDebugMode) _buildServiceSection(),
@@ -117,6 +126,75 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  bool _getReminderEnabled() {
+    final prefs = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    return prefs?.classReminderEnabled ?? false;
+  }
+
+  void _setReminderEnabled(bool value) {
+    final existing = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    final updated = AppSettings(
+      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
+      accentColorValue:
+          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
+      classReminderEnabled: value,
+    );
+    _serviceProvider.storeService.putPref<AppSettings>(
+      'app_settings',
+      updated,
+    );
+
+    if (value) {
+      ClassReminderService.instance.requestPermission();
+      ClassReminderService.instance.start();
+    } else {
+      ClassReminderService.instance.stop();
+    }
+    setState(() {});
+  }
+
+  Widget _buildReminderToggle() {
+    final enabled = _getReminderEnabled();
+
+    return Card.filled(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '课程提醒',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '课前25分钟发送通知',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Switch(
+              value: enabled,
+              onChanged: _setReminderEnabled,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

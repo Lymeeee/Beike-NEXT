@@ -12,6 +12,7 @@ import 'pages/courses/account/index.dart';
 import 'pages/net/dashboard/index.dart';
 import 'pages/net/traffic/index.dart';
 import 'pages/net/electricity/index.dart';
+import 'pages/net/webvpn/index.dart';
 import 'pages/more/settings.dart';
 import 'pages/more/update.dart';
 
@@ -96,6 +97,11 @@ class AppRouter {
         name: 'NetElectricityRoute',
         path: '/net/electricity',
         builder: (context, data) => MainLayout(child: const ElectricityPage()),
+      ),
+      NamedRouteDef(
+        name: 'WebVpnRoute',
+        path: '/net/webvpn',
+        builder: (context, data) => MainLayout(child: const WebVpnPage()),
       ),
       NamedRouteDef(
         name: 'SettingsRoute',

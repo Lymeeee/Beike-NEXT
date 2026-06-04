@@ -135,6 +135,7 @@ class ClassItem extends BaseDataClass {
   final String periodName; // 课节文字描述
   final String? periodNameAlt; // 课节文字描述（英文）
   final int? colorId; // 背景颜色编号
+  final bool isCustom; // 是否为自定义课程
 
   ClassItem({
     required this.day,
@@ -150,6 +151,7 @@ class ClassItem extends BaseDataClass {
     required this.periodName,
     this.periodNameAlt,
     this.colorId,
+    this.isCustom = false,
   });
 
   TimeOfDay? getMinStartTime(List<ClassPeriod> referPeriods) {
@@ -860,4 +862,27 @@ class ExamInfo extends BaseDataClass {
       return null;
     }
   }
+}
+
+class CustomCoursesList extends BaseDataClass {
+  final List<ClassItem> courses;
+
+  CustomCoursesList({required this.courses});
+
+  @override
+  Map<String, dynamic> getEssentials() => {'count': courses.length};
+
+  factory CustomCoursesList.fromJson(Map<String, dynamic> json) {
+    return CustomCoursesList(
+      courses: (json['courses'] as List<dynamic>?)
+              ?.map((e) => ClassItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'courses': courses.map((e) => e.toJson()).toList(),
+      };
 }

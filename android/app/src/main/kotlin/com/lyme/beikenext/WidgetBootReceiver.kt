@@ -1,4 +1,4 @@
-package cn.thebeike.app
+package com.lyme.beikenext
 
 import android.content.BroadcastReceiver
 import android.content.Context

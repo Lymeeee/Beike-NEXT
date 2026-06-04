@@ -23,7 +23,7 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
   bool _isLoadingExtraCodeImage = false;
   Uint8List? _extraCodeImage;
 
-  bool _hasAutoFilled = false; // Track if credentials were auto-filled
+  bool _hasAutoFilled = false;
 
   @override
   void initState() {
@@ -54,7 +54,6 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
         }
       }
     } catch (e) {
-      // Silently ignore errors loading cached credentials
       if (kDebugMode) {
         print('Failed to load cached credentials: $e');
       }
@@ -140,7 +139,7 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _hasAutoFilled = false; // Hide clear history button when logging in
+      _hasAutoFilled = false;
     });
 
     try {
@@ -152,7 +151,6 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
             : _extraCodeController.text.trim(),
       );
 
-      // Login succeeded
       if (mounted) {
         final loginData = NetUserIntegratedData(
           account: _usernameController.text.trim(),
@@ -165,7 +163,6 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
         Navigator.of(context).pop(loginData);
       }
     } catch (e) {
-      // Login failed
       if (mounted) {
         setState(() {
           _errorMessage = e.toString();
@@ -210,9 +207,7 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
                 hintText: '学工号',
               ),
               textInputAction: TextInputAction.next,
-              onChanged: (_) => setState(() {
-                // Trigger rebuild for login button state
-              }),
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -220,9 +215,7 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
               decoration: const InputDecoration(labelText: '密码'),
               obscureText: true,
               textInputAction: TextInputAction.next,
-              onChanged: (_) => setState(() {
-                // Trigger rebuild for login button state
-              }),
+              onChanged: (_) => setState(() {}),
             ),
             if (_hasAutoFilled) ...[
               const SizedBox(height: 12),

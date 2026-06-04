@@ -11,26 +11,32 @@ class ElectricityService {
 
   final Dio _dio;
 
-  ElectricityService() : _dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 10)));
+  ElectricityService()
+      : _dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          responseType: ResponseType.plain,
+        ));
 
   /// Query the current remaining kWh for an ammeter number.
   /// Returns the kWh value as an integer.
   Future<int> queryAmmeter(int ammeterNumber) async {
     final response = await _dio.post(
       _apiUrl,
-      data: {'DBNum': ammeterNumber.toString()},
-      options: Options(contentType: Headers.formUrlEncodedContentType),
+      data: 'DBNum=$ammeterNumber',
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+      ),
     );
 
-    final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final serviceKey = data['ServiceKey'];
-      if (serviceKey != null) {
-        return int.tryParse(serviceKey.toString()) ?? 0;
-      }
+    final text = response.data as String;
+    final json = jsonDecode(text) as Map<String, dynamic>;
+    final serviceKey = json['ServiceKey'];
+    if (serviceKey != null && serviceKey.toString().isNotEmpty) {
+      final remain = int.tryParse(serviceKey.toString());
+      if (remain != null) return remain;
     }
 
-    throw Exception('无法解析电表数据');
+    throw Exception(json['message'] ?? '无法解析电表数据');
   }
 
   // ---- Ammeter number persistence ----

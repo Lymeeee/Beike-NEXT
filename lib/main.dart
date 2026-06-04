@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'services/provider.dart';
+import 'services/class_reminder_service.dart';
 import 'types/preferences.dart';
 import 'utils/meta_info.dart';
 import 'router.dart';
@@ -14,6 +15,8 @@ void main() async {
   await MetaInfo.instance.initialize();
   // Initialize service provider
   await ServiceProvider.instance.initializeServices();
+  // Initialize class reminder service
+  await ClassReminderService.instance.initialize();
   // Run the GUI application
   runApp(const Main());
 }
@@ -85,9 +88,12 @@ class _MainState extends State<Main> {
   }
 
   void _persistSettings() {
+    final existing = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
     final appSettings = AppSettings(
       themeMode: _themeMode,
       accentColorValue: _accentColor?.toARGB32(),
+      classReminderEnabled: existing?.classReminderEnabled ?? false,
     );
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',

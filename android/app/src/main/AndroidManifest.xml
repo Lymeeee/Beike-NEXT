@@ -30,11 +30,11 @@
         </activity>
         <!-- Widget: Upcoming Class -->
         <receiver
-            android:name="cn.thebeike.app.UpcomingClassWidget"
+            android:name="com.lyme.beikenext.UpcomingClassWidget"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="cn.thebeike.app.AUTO_REFRESH" />
+                <action android:name="com.lyme.beikenext.AUTO_REFRESH" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -43,7 +43,7 @@
 
         <!-- Reschedules widget refresh alarms after device reboot -->
         <receiver
-            android:name="cn.thebeike.app.WidgetBootReceiver"
+            android:name="com.lyme.beikenext.WidgetBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

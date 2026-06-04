@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage>
     _FeatureCardConfig(
       title: '流量查询',
       description: '查看流量与费用明细',
-      icon: Icons.receipt_long,
+      icon: Icons.swap_horiz,
       color: (c) => Theme.of(c).colorScheme.primary,
       route: '/net/traffic',
     ),
@@ -82,6 +82,13 @@ class _HomePageState extends State<HomePage>
       icon: Icons.bolt,
       color: (c) => Theme.of(c).colorScheme.primary,
       route: '/net/electricity',
+    ),
+    _FeatureCardConfig(
+      title: 'WebVPN',
+      description: '在校园网之外访问校内资源',
+      icon: Icons.public,
+      color: (c) => Theme.of(c).colorScheme.primary,
+      route: '/net/webvpn',
     ),
   ];
 
@@ -187,17 +194,26 @@ class _HomePageState extends State<HomePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: MediaQuery.of(context).padding.top + 16),
-            const Text(
-              '欢迎来到大贝壳NEXT~',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            SizedBox(height: MediaQuery.of(context).padding.top + 48),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '欢迎来到大贝壳NEXT',
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
-              '北京科技大学校园助手',
-              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '北京科技大学校园助手',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             _buildFeatureGrid(),
             const SizedBox(height: 32),
             _buildNetFeatureGrid(),
@@ -501,7 +517,12 @@ class _HomePageState extends State<HomePage>
           children: [
             Text(isOngoing ? '  进行中' : '  接下来', style: textStyle1),
             const SizedBox(height: 4),
-            Text('  ${classItem.className}', style: textStyle2),
+            Text(
+              '  ${classItem.className.replaceAll('\n', ' ')}',
+              style: textStyle2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 2),
             if (periodTimeRange != null)
               Text('  $periodTimeRange', style: textStyle3),
@@ -683,7 +704,7 @@ class _HomePageState extends State<HomePage>
                     );
                   } else if (service.hasError) {
                     return Text(
-                      '教务账户登录失败',
+                      '登录可能已过期',
                       style: TextStyle(fontSize: 14, color: scheme.error),
                     );
                   } else {

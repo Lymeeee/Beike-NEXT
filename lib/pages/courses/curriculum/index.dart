@@ -7,6 +7,7 @@ import '/utils/app_bar.dart';
 import '/utils/sync_embeded.dart';
 import 'common.dart';
 import 'table.dart';
+import 'custom_course_dialog.dart';
 
 class MajorPeriodInfo {
   final int id;
@@ -33,6 +34,7 @@ class _CurriculumPageState extends State<CurriculumPage>
   int _currentWeek = 1;
   int _previousWeek = 0;
   bool _isLoading = false;
+  List<ClassItem> _customCourses = [];
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
@@ -50,6 +52,33 @@ class _CurriculumPageState extends State<CurriculumPage>
     );
 
     _loadCurriculumFromCacheOrService();
+  }
+
+  String _customCoursesKey(TermInfo term) =>
+      'custom_courses_${term.year}_${term.season}';
+
+  List<ClassItem> _readCustomCourses(TermInfo term) {
+    final data = _serviceProvider.storeService.getPref<CustomCoursesList>(
+      _customCoursesKey(term),
+      CustomCoursesList.fromJson,
+    );
+    return data?.courses ?? [];
+  }
+
+  void _saveCustomCourses(TermInfo term) {
+    _serviceProvider.storeService.putPref<CustomCoursesList>(
+      _customCoursesKey(term),
+      CustomCoursesList(courses: _customCourses),
+    );
+  }
+
+  CurriculumIntegratedData _getMergedData(CurriculumIntegratedData base) {
+    return CurriculumIntegratedData(
+      currentTerm: base.currentTerm,
+      allClasses: [...base.allClasses, ..._customCourses],
+      allPeriods: base.allPeriods,
+      calendarDays: base.calendarDays,
+    );
   }
 
   @override
@@ -104,6 +133,7 @@ class _CurriculumPageState extends State<CurriculumPage>
 
     if (cachedData != null) {
       if (mounted) {
+        _customCourses = _readCustomCourses(cachedData.currentTerm);
         setState(() {
           _curriculumData = cachedData;
           _errorMessage = null;
@@ -166,6 +196,7 @@ class _CurriculumPageState extends State<CurriculumPage>
       setActivated(true);
 
       if (mounted) {
+        _customCourses = _readCustomCourses(integratedData.currentTerm);
         setState(() {
           _curriculumData = integratedData;
           _isLoading = false;
@@ -237,6 +268,7 @@ class _CurriculumPageState extends State<CurriculumPage>
       // Check activated status from settings
       if (isActivated) {
         if (mounted && _curriculumData != data) {
+          _customCourses = _readCustomCourses(data.currentTerm);
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() {
               _curriculumData = data;
@@ -359,6 +391,7 @@ class _CurriculumPageState extends State<CurriculumPage>
       setActivated(true);
 
       if (mounted) {
+        _customCourses = _readCustomCourses(data.currentTerm);
         setState(() {
           _curriculumData = data;
           _isLoading = false;
@@ -376,7 +409,8 @@ class _CurriculumPageState extends State<CurriculumPage>
   }
 
   Widget _buildCurriculumView() {
-    if (_curriculumData == null || _curriculumData!.allClasses.isEmpty) {
+    if (_curriculumData == null ||
+        (_curriculumData!.allClasses.isEmpty && _customCourses.isEmpty)) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -448,6 +482,66 @@ class _CurriculumPageState extends State<CurriculumPage>
     }
   }
 
+  Future<void> _onTripleTapEmptyCell(int day, int period) async {
+    if (_curriculumData == null) return;
+    final maxWeek = _curriculumData!.getMaxValidWeekIndex();
+    final effectiveMaxWeek = maxWeek < 16 ? 16 : maxWeek;
+
+    final result = await showDialog(
+      context: context,
+      builder: (ctx) => CustomCourseDialog(
+        day: day,
+        period: period,
+        maxWeek: effectiveMaxWeek,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    if (result is ClassItem) {
+      setState(() => _customCourses.add(result));
+      _saveCustomCourses(_curriculumData!.currentTerm);
+    }
+  }
+
+  Future<void> _onTapCustomCourse(ClassItem course) async {
+    final maxWeek = _curriculumData!.getMaxValidWeekIndex();
+    final effectiveMaxWeek = maxWeek < 16 ? 16 : maxWeek;
+
+    final result = await showDialog(
+      context: context,
+      builder: (ctx) => CustomCourseDialog(
+        day: course.day,
+        period: course.period,
+        maxWeek: effectiveMaxWeek,
+        existing: course,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    if (result == 'delete') {
+      setState(() {
+        _customCourses.removeWhere((c) =>
+            c.day == course.day &&
+            c.period == course.period &&
+            c.className == course.className &&
+            c.locationName == course.locationName);
+      });
+      _saveCustomCourses(_curriculumData!.currentTerm);
+    } else if (result is ClassItem) {
+      setState(() {
+        final idx = _customCourses.indexWhere((c) =>
+            c.day == course.day &&
+            c.period == course.period &&
+            c.className == course.className &&
+            c.locationName == course.locationName);
+        if (idx >= 0) _customCourses[idx] = result;
+      });
+      _saveCustomCourses(_curriculumData!.currentTerm);
+    }
+  }
+
   Widget _buildWeekSelector() {
     return Row(
       children: [
@@ -479,7 +573,7 @@ class _CurriculumPageState extends State<CurriculumPage>
           ),
         ),
         Tooltip(
-          message: _currentWeek >= _curriculumData!.getMaxValidWeekIndex()
+          message: _currentWeek >= _getMergedData(_curriculumData!).getMaxValidWeekIndex()
               ? '已经到最大周次了~'
               : '',
           child: IconButton(
@@ -492,7 +586,8 @@ class _CurriculumPageState extends State<CurriculumPage>
   }
 
   void _showWeekJumper() {
-    final maxValidWeek = _curriculumData!.getMaxValidWeekIndex();
+    final merged = _getMergedData(_curriculumData!);
+    final maxValidWeek = merged.getMaxValidWeekIndex();
     final todayWeek = _curriculumData!.getWeekIndexToday();
 
     showDialog(
@@ -561,7 +656,8 @@ class _CurriculumPageState extends State<CurriculumPage>
   }
 
   void _gotoWeekSafe(int newWeek) {
-    newWeek = newWeek.clamp(1, _curriculumData!.getMaxValidWeekIndex());
+    final merged = _getMergedData(_curriculumData!);
+    newWeek = newWeek.clamp(1, merged.getMaxValidWeekIndex());
 
     if (newWeek == _currentWeek) return;
 
@@ -572,7 +668,8 @@ class _CurriculumPageState extends State<CurriculumPage>
   }
 
   void _gotoCurrentDateWeek() {
-    final maxValidWeek = _curriculumData!.getMaxValidWeekIndex();
+    final merged = _getMergedData(_curriculumData!);
+    final maxValidWeek = merged.getMaxValidWeekIndex();
     if (_currentWeek > maxValidWeek) {
       _currentWeek = maxValidWeek;
     }
@@ -670,16 +767,19 @@ class _CurriculumPageState extends State<CurriculumPage>
       builder: (context, constraints) {
         try {
           final settings = getSettings();
-          final weekDates = _curriculumData!.getWeekdayDaysOf(_currentWeek);
+          final mergedData = _getMergedData(_curriculumData!);
+          final weekDates = mergedData.getWeekdayDaysOf(_currentWeek);
 
           return SingleChildScrollView(
             scrollDirection: Axis.vertical,
             child: CurriculumTable(
-              curriculumData: _curriculumData!,
+              curriculumData: mergedData,
               availableWidth: constraints.maxWidth,
               settings: settings,
               weekDates: weekDates,
               currentWeek: _currentWeek,
+              onTripleTapEmptyCell: _onTripleTapEmptyCell,
+              onTapCustomCourse: _onTapCustomCourse,
             ),
           );
         } catch (e) {

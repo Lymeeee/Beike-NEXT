@@ -1,4 +1,4 @@
-package cn.thebeike.app
+package com.lyme.beikenext
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -16,11 +16,11 @@ import org.json.JSONObject
 class UpcomingClassWidget : AppWidgetProvider() {
 
     companion object {
-        private const val PREFS_NAME = "cn.thebeike.app.widget"
+        private const val PREFS_NAME = "com.lyme.beikenext.widget"
         private const val KEY_LEGACY = "upcoming_class_data"
         private const val KEY_FULL_DATA = "curriculum_full_data"
         private const val REFRESH_INTERVAL_MS = 5 * 60 * 1000L
-        private const val ACTION_AUTO_REFRESH = "cn.thebeike.app.AUTO_REFRESH"
+        private const val ACTION_AUTO_REFRESH = "com.lyme.beikenext.AUTO_REFRESH"
 
         fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = buildRemoteViews(context)

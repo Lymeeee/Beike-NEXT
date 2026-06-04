@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '/types/courses.dart';
 
 class WidgetUpdater {
-  static const _channel = MethodChannel('cn.thebeike.app/widget');
+  static const _channel = MethodChannel('com.lyme.beikenext/widget');
 
   static final WidgetUpdater _instance = WidgetUpdater._internal();
   factory WidgetUpdater() => _instance;

@@ -3,9 +3,9 @@ import FlutterMacOS
 import WidgetKit
 
 class MainFlutterWindow: NSWindow {
-  private let appGroup = "group.cn.thebeike.app"
-  private let channelName = "cn.thebeike.app/widget"
-  private let widgetKind = "cn.thebeike.app.widget"
+  private let appGroup = "group.com.lyme.beikenext"
+  private let channelName = "com.lyme.beikenext/widget"
+  private let widgetKind = "com.lyme.beikenext.widget"
   private let curriculumDataKey = "curriculum_full_data"
 
   override func awakeFromNib() {
