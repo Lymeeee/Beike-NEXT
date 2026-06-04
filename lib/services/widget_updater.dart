@@ -15,7 +15,16 @@ class WidgetUpdater {
     };
     if (data != null) {
       payload.addAll(data.toJson());
+      payload['termSeason'] = data.currentTerm.season;
     }
+    _channel.invokeMethod('updateCurriculumData', json.encode(payload));
+  }
+
+  void updateHoliday() {
+    final payload = <String, dynamic>{
+      'hasData': true,
+      'holidayMode': true,
+    };
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));
   }
 }

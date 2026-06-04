@@ -11,6 +11,7 @@ import '/services/sync/base.dart';
 import '/services/sync/sync_service.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
+import '/services/class_reminder_service.dart';
 
 class ServiceProvider extends ChangeNotifier {
   final List<VoidCallback> _serviceListenerDisposers = [];
@@ -154,12 +155,16 @@ class ServiceProvider extends ChangeNotifier {
       throw const CourseServiceOffline();
     }
 
+    final calendarFuture = termInfo.season >= 3
+        ? Future.value(<CalendarDay>[])
+        : coursesService
+            .getCalendarDays(termInfo)
+            .catchError((e) => <CalendarDay>[]);
+
     final futures = await Future.wait([
       coursesService.getCurriculum(termInfo),
       coursesService.getCoursePeriods(termInfo),
-      coursesService
-          .getCalendarDays(termInfo)
-          .catchError((e) => <CalendarDay>[]),
+      calendarFuture,
     ]);
 
     final classes = futures[0] as List<ClassItem>;
@@ -181,6 +186,26 @@ class ServiceProvider extends ChangeNotifier {
 
     // Update widget
     WidgetUpdater().updateFromCurriculum(integratedData);
+
+    // Auto-disable holiday mode
+    final appSettings = storeService.getPref<AppSettings>(
+      'app_settings',
+      AppSettings.fromJson,
+    );
+    if (appSettings?.holidayMode == true) {
+      storeService.putPref<AppSettings>(
+        'app_settings',
+        AppSettings(
+          themeMode: appSettings!.themeMode,
+          accentColorValue: appSettings.accentColorValue,
+          classReminderEnabled: appSettings.classReminderEnabled,
+          holidayMode: false,
+        ),
+      );
+      if (appSettings.classReminderEnabled) {
+        ClassReminderService.instance.start();
+      }
+    }
 
     return integratedData;
   }

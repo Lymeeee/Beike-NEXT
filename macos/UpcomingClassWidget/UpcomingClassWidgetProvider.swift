@@ -42,6 +42,8 @@ struct WidgetCurriculumData: Codable {
     let allClasses: [WidgetClassItem]?
     let allPeriods: [WidgetClassPeriod]?
     let calendarDays: [WidgetCalendarDay]?
+    let termSeason: Int?
+    let holidayMode: Bool?
 }
 
 // MARK: - Timeline Provider
@@ -75,6 +77,17 @@ struct Provider: TimelineProvider {
             return
         }
 
+        if curriculum.holidayMode == true {
+            let entry = ClassEntry(date: Date(), hasClass: false,
+                className: "假期快乐，祝你天天开心～",
+                timeRange: "", location: "", teacher: "")
+            let midnight = Calendar.current.startOfDay(
+                for: Calendar.current.date(byAdding: .day, value: 1, to: Date())!
+            )
+            completion(Timeline(entries: [entry], policy: .after(midnight)))
+            return
+        }
+
         let entries = generateTimelineEntries(from: curriculum)
         let lastEntry = entries.last!
         let midnight = Calendar.current.startOfDay(
@@ -87,6 +100,12 @@ struct Provider: TimelineProvider {
     // MARK: - Timeline generation
 
     private func generateTimelineEntries(from data: WidgetCurriculumData) -> [ClassEntry] {
+        if data.holidayMode == true {
+            return [ClassEntry(date: Date(), hasClass: false,
+                className: "假期快乐，祝你天天开心～",
+                timeRange: "", location: "", teacher: "")]
+        }
+
         let calendar = Calendar.current
         let now = Date()
         let todayStart = calendar.startOfDay(for: now)
@@ -99,17 +118,20 @@ struct Provider: TimelineProvider {
                 className: "数据不完整", timeRange: "请打开App刷新", location: "", teacher: "")]
         }
 
+        let isSummerTerm = (data.termSeason ?? 1) >= 3
         guard let todayWeekIndex = data.calendarDays?.first(where: {
             $0.year == components.year && $0.month == components.month && $0.day == components.day
         })?.weekIndex else {
+            let lookupWeekday = isSummerTerm ? 1 : todayWeekday
             let entry = computeEntry(for: now, allClasses: allClasses,
-                                     allPeriods: allPeriods, todayWeekday: todayWeekday,
+                                     allPeriods: allPeriods, todayWeekday: lookupWeekday,
                                      todayWeekIndex: 1)
             return [entry]
         }
 
+        let lookupWeekday = isSummerTerm ? 1 : todayWeekday
         let todayClasses = allClasses.filter {
-            $0.day == todayWeekday && $0.weeks.contains(todayWeekIndex)
+            $0.day == lookupWeekday && $0.weeks.contains(todayWeekIndex)
         }
 
         if todayClasses.isEmpty {
@@ -144,7 +166,7 @@ struct Provider: TimelineProvider {
 
         // Always include current state as the first entry
         entries.append(computeEntry(for: now, allClasses: allClasses,
-            allPeriods: allPeriods, todayWeekday: todayWeekday,
+            allPeriods: allPeriods, todayWeekday: lookupWeekday,
             todayWeekIndex: todayWeekIndex))
 
         // Future boundary entries: when each class starts

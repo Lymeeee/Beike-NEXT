@@ -112,11 +112,23 @@ class UpcomingClassWidget : AppWidgetProvider() {
                     return
                 }
 
+                if (data.optBoolean("holidayMode", false)) {
+                    views.setInt(R.id.label_text, "setVisibility", 0x00000008)
+                    views.setInt(R.id.time_text, "setVisibility", 0x00000008)
+                    views.setInt(R.id.location_text, "setVisibility", 0x00000008)
+                    views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
+                    views.setTextViewText(R.id.class_name_text, "假期快乐，祝你天天开心～")
+                    attachClickIntent(context, views)
+                    return
+                }
+
                 val calendar = java.util.Calendar.getInstance()
                 val todayYear = calendar.get(java.util.Calendar.YEAR)
                 val todayMonth = calendar.get(java.util.Calendar.MONTH) + 1
                 val todayDay = calendar.get(java.util.Calendar.DAY_OF_MONTH)
                 val todayWeekday = convertToMondayBased(calendar.get(java.util.Calendar.DAY_OF_WEEK))
+                val termSeason = data.optInt("termSeason", 1)
+                val isSummerTerm = termSeason >= 3
 
                 // Find today's week index from calendar days
                 var todayWeekIndex: Int? = null
@@ -133,14 +145,19 @@ class UpcomingClassWidget : AppWidgetProvider() {
                     }
                 }
 
+                // Summer term: repeat Monday week 1 every day
                 if (todayWeekIndex == null) {
-                    views.setInt(R.id.label_text, "setVisibility", 0x00000008)
-                    views.setInt(R.id.time_text, "setVisibility", 0x00000008)
-                    views.setInt(R.id.location_text, "setVisibility", 0x00000008)
-                    views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
-                    views.setTextViewText(R.id.class_name_text, "课表数据未就绪")
-                    attachClickIntent(context, views)
-                    return
+                    if (isSummerTerm) {
+                        todayWeekIndex = 1
+                    } else {
+                        views.setInt(R.id.label_text, "setVisibility", 0x00000008)
+                        views.setInt(R.id.time_text, "setVisibility", 0x00000008)
+                        views.setInt(R.id.location_text, "setVisibility", 0x00000008)
+                        views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
+                        views.setTextViewText(R.id.class_name_text, "课表数据未就绪")
+                        attachClickIntent(context, views)
+                        return
+                    }
                 }
 
                 val allClasses = data.optJSONArray("allClasses") ?: run {
@@ -152,11 +169,14 @@ class UpcomingClassWidget : AppWidgetProvider() {
                     return
                 }
 
+                // Summer term: show Monday schedule every day
+                val lookupWeekday = if (isSummerTerm) 1 else todayWeekday
+
                 // Filter today's valid classes
                 val todayClasses = mutableListOf<JSONObject>()
                 for (i in 0 until allClasses.length()) {
                     val cls = allClasses.getJSONObject(i)
-                    if (cls.optInt("day") != todayWeekday) continue
+                    if (cls.optInt("day") != lookupWeekday) continue
                     val weeks = cls.optJSONArray("weeks") ?: continue
                     for (j in 0 until weeks.length()) {
                         if (weeks.optInt(j) == todayWeekIndex) {

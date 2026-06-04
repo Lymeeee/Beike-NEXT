@@ -69,6 +69,7 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) =>
       themeMode: $enumDecode(_$ThemeModeEnumMap, json['themeMode']),
       accentColorValue: json['accentColor'] as int?,
       classReminderEnabled: json['classReminderEnabled'] as bool? ?? false,
+      holidayMode: json['holidayMode'] as bool? ?? false,
     )
       ..$lastUpdateTime = _$JsonConverterFromJson<String, DateTime>(
         json[r'$lastUpdateTime'],
@@ -84,6 +85,7 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'themeMode': _$ThemeModeEnumMap[instance.themeMode]!,
       'accentColor': instance.accentColorValue,
       'classReminderEnabled': instance.classReminderEnabled,
+      'holidayMode': instance.holidayMode,
     };
 
 const _$ThemeModeEnumMap = {

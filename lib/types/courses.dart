@@ -400,7 +400,7 @@ class CurriculumIntegratedData extends BaseDataClass {
 
   int? getWeekIndexToday() {
     if (calendarDays == null || calendarDays!.isEmpty) {
-      return null;
+      return currentTerm.season >= 3 ? 1 : null;
     }
 
     final now = DateTime.now();
@@ -440,10 +440,14 @@ class CurriculumIntegratedData extends BaseDataClass {
     if (currentWeek == null) return [];
 
     final now = DateTime.now();
+    final lookupDay = (currentTerm.season >= 3 &&
+            (calendarDays == null || calendarDays!.isEmpty))
+        ? 1
+        : now.weekday;
 
     return getClassesOfWeek(
       currentWeek,
-    ).where((classItem) => classItem.day == now.weekday).toList();
+    ).where((classItem) => classItem.day == lookupDay).toList();
   }
 
   ClassItem? getClassOngoing() {

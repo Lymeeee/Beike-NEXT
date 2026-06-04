@@ -122,10 +122,13 @@ class CurriculumTable extends StatelessWidget {
     String? displayMonth;
     String? displayYear;
 
-    for (final calendarDay in curriculumData.calendarDays!) {
-      if (calendarDay.weekIndex == currentWeek) {
-        displayMonth = '${calendarDay.month}月';
-        displayYear = '${calendarDay.year}年';
+    final days = curriculumData.calendarDays;
+    if (days != null) {
+      for (final calendarDay in days) {
+        if (calendarDay.weekIndex == currentWeek) {
+          displayMonth = '${calendarDay.month}月';
+          displayYear = '${calendarDay.year}年';
+        }
       }
     }
 
@@ -145,8 +148,8 @@ class CurriculumTable extends StatelessWidget {
                 children: [
                   _buildHeaderCell(
                     context,
-                    displayMonth ?? '时间',
-                    subtitle: displayYear,
+                    displayMonth ?? '${curriculumData.currentTerm.year.split('-').last}年',
+                    subtitle: displayMonth != null ? displayYear : null,
                   ),
                   for (int day = 1; day <= displayDays; day++)
                     _buildHeaderCell(

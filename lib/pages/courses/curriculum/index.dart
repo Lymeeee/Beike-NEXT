@@ -171,10 +171,14 @@ class _CurriculumPageState extends State<CurriculumPage>
     }
 
     try {
+      final calendarFuture = termInfo.season >= 3
+          ? Future.value(<CalendarDay>[])
+          : service.getCalendarDays(termInfo).catchError((e) => <CalendarDay>[]);
+
       final futures = await Future.wait([
         service.getCurriculum(termInfo),
         service.getCoursePeriods(termInfo),
-        service.getCalendarDays(termInfo).catchError((e) => <CalendarDay>[]),
+        calendarFuture,
       ]);
 
       final classes = futures[0] as List<ClassItem>;
@@ -192,6 +196,8 @@ class _CurriculumPageState extends State<CurriculumPage>
         "curriculum_data",
         integratedData,
       );
+
+      _autoDisableHolidayMode();
 
       setActivated(true);
 
@@ -211,6 +217,24 @@ class _CurriculumPageState extends State<CurriculumPage>
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _autoDisableHolidayMode() {
+    final appSettings = _serviceProvider.storeService.getPref<AppSettings>(
+      'app_settings',
+      AppSettings.fromJson,
+    );
+    if (appSettings?.holidayMode == true) {
+      _serviceProvider.storeService.putPref<AppSettings>(
+        'app_settings',
+        AppSettings(
+          themeMode: appSettings!.themeMode,
+          accentColorValue: appSettings.accentColorValue,
+          classReminderEnabled: appSettings.classReminderEnabled,
+          holidayMode: false,
+        ),
+      );
     }
   }
 

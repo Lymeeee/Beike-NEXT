@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
 import '/services/class_reminder_service.dart';
+import '/services/widget_updater.dart';
 import '/main.dart';
 import '/types/preferences.dart';
 
@@ -50,6 +51,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 24),
           _buildReminderToggle(),
+          const SizedBox(height: 16),
+          _buildHolidayToggle(),
           const SizedBox(height: 24),
           _buildDataSection(),
           if (kDebugMode) _buildServiceSection(),
@@ -191,6 +194,78 @@ class _SettingsPageState extends State<SettingsPage> {
             Switch(
               value: enabled,
               onChanged: _setReminderEnabled,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _getHolidayMode() {
+    final prefs = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    return prefs?.holidayMode ?? false;
+  }
+
+  void _setHolidayMode(bool value) {
+    final existing = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    final updated = AppSettings(
+      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
+      accentColorValue:
+          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
+      classReminderEnabled: existing?.classReminderEnabled ?? false,
+      holidayMode: value,
+    );
+    _serviceProvider.storeService.putPref<AppSettings>(
+      'app_settings',
+      updated,
+    );
+
+    if (value) {
+      _serviceProvider.storeService.delConfig('curriculum_data');
+      ClassReminderService.instance.stop();
+      WidgetUpdater().updateHoliday();
+    } else {
+      ClassReminderService.instance.start();
+      WidgetUpdater().updateFromCurriculum(null);
+    }
+    setState(() {});
+  }
+
+  Widget _buildHolidayToggle() {
+    final enabled = _getHolidayMode();
+
+    return Card.filled(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '假期模式',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '清除课表，小组件显示假期祝福',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Switch(
+              value: enabled,
+              onChanged: _setHolidayMode,
             ),
           ],
         ),

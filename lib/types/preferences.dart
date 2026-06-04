@@ -180,11 +180,13 @@ class AppSettings extends BaseDataClass {
   @JsonKey(name: 'accentColor')
   int? accentColorValue;
   bool classReminderEnabled;
+  bool holidayMode;
 
   AppSettings({
     required this.themeMode,
     this.accentColorValue,
     this.classReminderEnabled = false,
+    this.holidayMode = false,
   });
 
   Color? get accentColor =>
@@ -195,6 +197,7 @@ class AppSettings extends BaseDataClass {
     'themeMode': themeMode,
     'accentColor': accentColorValue,
     'classReminderEnabled': classReminderEnabled,
+    'holidayMode': holidayMode,
   };
 
   static final AppSettings defaultSettings = AppSettings(
