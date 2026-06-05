@@ -58,14 +58,14 @@ extension TableSizeExtension on TableSize {
     }
   }
 
-  double get height {
+  double get ratio {
     switch (this) {
       case TableSize.small:
-        return 80.0;
+        return 1.0;
       case TableSize.medium:
-        return 100.0;
+        return 1.2;
       case TableSize.large:
-        return 120.0;
+        return 1.4;
     }
   }
 }

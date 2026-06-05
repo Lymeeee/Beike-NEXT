@@ -799,6 +799,7 @@ class _CurriculumPageState extends State<CurriculumPage>
             child: CurriculumTable(
               curriculumData: mergedData,
               availableWidth: constraints.maxWidth,
+              availableHeight: constraints.maxHeight,
               settings: settings,
               weekDates: weekDates,
               currentWeek: _currentWeek,

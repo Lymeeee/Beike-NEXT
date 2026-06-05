@@ -21,6 +21,7 @@ class _MajorPeriodInfo {
 class CurriculumTable extends StatelessWidget {
   final CurriculumIntegratedData curriculumData;
   final double availableWidth;
+  final double availableHeight;
   final CurriculumSettings settings;
   final Map<int, int> weekDates;
   final int currentWeek;
@@ -31,6 +32,7 @@ class CurriculumTable extends StatelessWidget {
     super.key,
     required this.curriculumData,
     required this.availableWidth,
+    required this.availableHeight,
     required this.settings,
     required this.weekDates,
     required this.currentWeek,
@@ -118,6 +120,9 @@ class CurriculumTable extends StatelessWidget {
       weekClasses.map((c) => c.day).toSet().toList(),
     );
     final dayColumnWidth = (availableWidth - 2) / (displayDays + 1);
+    const headerHeight = 66.0; // 50 + 2×2 margin + 12 safety
+    const rowVerticalMargin = 2.0; // 1+1 top+bottom per body cell
+    final cellHeight = (availableHeight - headerHeight) / majorPeriods.length - rowVerticalMargin;
 
     String? displayMonth;
     String? displayYear;
@@ -170,7 +175,7 @@ class CurriculumTable extends StatelessWidget {
                   children: [
                     _buildMajorTimeCell(
                       context,
-                      settings,
+                      cellHeight,
                       majorPeriods[periodIndex],
                       timeIndicatorInfo,
                       periodIndex,
@@ -178,6 +183,7 @@ class CurriculumTable extends StatelessWidget {
                     for (int day = 1; day <= displayDays; day++)
                       _buildMajorClassCell(
                         context,
+                        cellHeight,
                         settings,
                         weekClasses,
                         day,
@@ -244,12 +250,11 @@ class CurriculumTable extends StatelessWidget {
 
   Widget _buildMajorTimeCell(
     BuildContext context,
-    CurriculumSettings settings,
+    double cellHeight,
     _MajorPeriodInfo majorPeriod,
     _TimeIndicatorInfo? arrowInfo,
     int periodIndex,
   ) {
-    final cellHeight = settings.tableSize.height;
     final showArrow = arrowInfo != null && arrowInfo.periodIndex == periodIndex;
 
     return Container(
@@ -321,6 +326,7 @@ class CurriculumTable extends StatelessWidget {
 
   Widget _buildMajorClassCell(
     BuildContext context,
+    double cellHeight,
     CurriculumSettings settings,
     List<ClassItem> weekClasses,
     int day,
@@ -330,15 +336,13 @@ class CurriculumTable extends StatelessWidget {
       return classItem.day == day && classItem.period == majorPeriod.id;
     }).toList();
 
-    final cellHeight = settings.tableSize.height;
-
     final classColors = classesInSlot.isEmpty
         ? null
         : _getClassColors(context, classesInSlot.first);
 
     return Container(
       height: cellHeight,
-      margin: const EdgeInsets.all(2),
+      margin: const EdgeInsets.fromLTRB(2, 1, 2, 1),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
         color: classColors?.background ??
@@ -371,7 +375,11 @@ class CurriculumTable extends StatelessWidget {
     CurriculumSettings settings,
     Color foregroundColor,
   ) {
-    final maxLines = settings.tableSize.height >= 100 ? 3 : 2;
+    final maxLines = switch (settings.tableSize) {
+      TableSize.small => 2,
+      TableSize.medium => 3,
+      TableSize.large => 4,
+    };
     final firstClass = classesInSlot.first;
     final useAnimation = settings.animationMode != AnimationMode.none;
 
@@ -389,7 +397,7 @@ class CurriculumTable extends StatelessWidget {
         child: useAnimation
             ? AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.all(2.0),
+                padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 1.0),
                 width: double.infinity,
                 height: double.infinity,
                 child: _buildClassContentInner(
@@ -401,7 +409,7 @@ class CurriculumTable extends StatelessWidget {
                 ),
               )
             : Container(
-                padding: const EdgeInsets.all(2.0),
+                padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 1.0),
                 width: double.infinity,
                 height: double.infinity,
                 child: _buildClassContentInner(
@@ -416,6 +424,14 @@ class CurriculumTable extends StatelessWidget {
     );
   }
 
+  String _simplifyLocation(String location) {
+    return location
+        .replaceAll('校本部', '')
+        .replaceAll('【', '')
+        .replaceAll('】', '')
+        .trim();
+  }
+
   Widget _buildClassContentInner(
     BuildContext context,
     ClassItem firstClass,
@@ -423,6 +439,8 @@ class CurriculumTable extends StatelessWidget {
     int maxLines,
     Color foregroundColor,
   ) {
+    final location = _simplifyLocation(firstClass.locationName);
+    final locationMaxLines = (maxLines ~/ 2).clamp(1, 2);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -436,17 +454,15 @@ class CurriculumTable extends StatelessWidget {
             color: foregroundColor,
           ),
           textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.fade,
+          maxLines: maxLines,
         ),
-        if (firstClass.locationName.isNotEmpty) ...[
+        if (location.isNotEmpty) ...[
           const SizedBox(height: 1),
           Text(
-            firstClass.locationName,
+            location,
             style: TextStyle(fontSize: 10, height: 1.2, color: foregroundColor.withValues(alpha: 0.7)),
             textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.fade,
+            maxLines: locationMaxLines,
           ),
         ],
         if (classesInSlot.length > 1) ...[
