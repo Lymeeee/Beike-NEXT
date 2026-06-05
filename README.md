@@ -22,7 +22,7 @@
 
 1. 请[**前往此页面**](https://github.com/Lymeeee/Beike-NEXT/releases)下载适合你的操作系统的程序文件
 2. 安卓版请下载apk并且无视风险强行安装
-3. Windows版请下载zip并且解压到任意一个你认为合适的文件夹内，双击the_beike.exe运行
+3. Windows版请下载zip并且解压到任意一个你认为合适的文件夹内，双击beike_next.exe运行
 4. Linux版使用AppImage即可
 5. iOS版需要自签，巨魔或越狱才能安装，由于财力有限故不会上架app store
 6. macOS版右键打开dmg后将应用拖放至Applications文件夹内即可在程序坞见到它
