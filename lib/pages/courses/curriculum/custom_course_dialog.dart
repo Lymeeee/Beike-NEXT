@@ -273,7 +273,6 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
               foregroundColor: theme.colorScheme.error,
             ),
           ),
-        const Spacer(),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),

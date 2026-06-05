@@ -427,34 +427,35 @@ class CurriculumTable extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Center(
-            child: Text(
-              firstClass.className.replaceAll('\n', ' '),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: foregroundColor,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.fade,
-            ),
+        Text(
+          firstClass.className.replaceAll('\n', ' '),
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.2,
+            fontWeight: FontWeight.bold,
+            color: foregroundColor,
           ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.fade,
         ),
-        if (firstClass.locationName.isNotEmpty)
+        if (firstClass.locationName.isNotEmpty) ...[
+          const SizedBox(height: 1),
           Text(
             firstClass.locationName,
-            style: TextStyle(fontSize: 10, color: foregroundColor.withValues(alpha: 0.7)),
+            style: TextStyle(fontSize: 10, height: 1.2, color: foregroundColor.withValues(alpha: 0.7)),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.fade,
           ),
-        if (classesInSlot.length > 1)
+        ],
+        if (classesInSlot.length > 1) ...[
+          const SizedBox(height: 1),
           Text(
             '+${classesInSlot.length - 1}',
-            style: TextStyle(fontSize: 9, color: foregroundColor.withValues(alpha: 0.7)),
+            style: TextStyle(fontSize: 9, height: 1.2, color: foregroundColor.withValues(alpha: 0.7)),
           ),
+        ],
       ],
     );
   }
