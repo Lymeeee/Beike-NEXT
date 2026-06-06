@@ -634,7 +634,7 @@ class _HomePageState extends State<HomePage>
   Widget _buildNetNarrowLayout() {
     return Column(
       children: [
-        _buildEmptyClassroomCard(context),
+        _buildEmptyClassroomCard(context, isWideScreen: false),
         const SizedBox(height: 8),
         ..._netFeatureCards.asMap().entries.expand((entry) {
           final index = entry.key;
@@ -662,7 +662,7 @@ class _HomePageState extends State<HomePage>
     final cards = _netFeatureCards;
     return Column(
       children: [
-        _buildEmptyClassroomCard(context),
+        _buildEmptyClassroomCard(context, isWideScreen: true),
         const SizedBox(height: 8),
         SizedBox(
           height: 120,
@@ -677,8 +677,14 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildEmptyClassroomCard(BuildContext context) {
+  Widget _buildEmptyClassroomCard(BuildContext context, {required bool isWideScreen}) {
     final theme = Theme.of(context);
+    final iconSize = isWideScreen ? 36.0 : 32.0;
+    final iconGap = isWideScreen ? 16.0 : 12.0;
+    final titleFontSize = isWideScreen ? 28.0 : 24.0;
+    final titleGap = isWideScreen ? 12.0 : 16.0;
+    final descFontSize = isWideScreen ? 16.0 : 14.0;
+
     return Card.filled(
       child: InkWell(
         onTap: () => context.router.pushPath(_emptyClassroomCard.route),
@@ -701,30 +707,27 @@ class _HomePageState extends State<HomePage>
                       Row(
                         children: [
                           Icon(_emptyClassroomCard.icon,
-                              size: 36,
-                              color: theme
-                                  .colorScheme.onPrimaryContainer),
-                          const SizedBox(width: 16),
+                              size: iconSize,
+                              color: theme.colorScheme.onPrimaryContainer),
+                          SizedBox(width: iconGap),
                           Expanded(
                             child: Text(
                               _emptyClassroomCard.title,
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: titleFontSize,
                                 fontWeight: FontWeight.bold,
-                                color: theme
-                                    .colorScheme.onPrimaryContainer,
+                                color: theme.colorScheme.onPrimaryContainer,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: titleGap),
                       Text(
                         _emptyClassroomCard.description,
                         style: TextStyle(
-                          fontSize: 16,
-                          color: theme.colorScheme.onPrimaryContainer
-                              .withValues(alpha: 0.9),
+                          fontSize: descFontSize,
+                          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
