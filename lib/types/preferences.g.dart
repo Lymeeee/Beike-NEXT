@@ -66,11 +66,11 @@ Json? _$JsonConverterToJson<Json, Value>(
 
 AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) =>
     AppSettings(
-      themeMode: $enumDecode(_$ThemeModeEnumMap, json['themeMode']),
-      accentColorValue: json['accentColor'] as int?,
-      classReminderEnabled: json['classReminderEnabled'] as bool? ?? false,
-      holidayMode: json['holidayMode'] as bool? ?? false,
-    )
+        themeMode: $enumDecode(_$ThemeModeEnumMap, json['themeMode']),
+        accentColorValue: (json['accentColor'] as num?)?.toInt(),
+        classReminderEnabled: json['classReminderEnabled'] as bool? ?? false,
+        holidayMode: json['holidayMode'] as bool? ?? false,
+      )
       ..$lastUpdateTime = _$JsonConverterFromJson<String, DateTime>(
         json[r'$lastUpdateTime'],
         const UTCConverter().fromJson,

@@ -15,6 +15,7 @@ import 'pages/net/electricity/index.dart';
 import 'pages/net/webvpn/index.dart';
 import 'pages/more/settings.dart';
 import 'pages/more/update.dart';
+import 'pages/empty_classroom/index.dart';
 
 class _BottomTab {
   final IconData icon;
@@ -112,6 +113,12 @@ class AppRouter {
         name: 'UpdateRoute',
         path: '/more/update',
         builder: (context, data) => MainLayout(child: const UpdatePage()),
+      ),
+      NamedRouteDef(
+        name: 'EmptyClassroomRoute',
+        path: '/net/empty-classroom',
+        builder: (context, data) =>
+            MainLayout(child: const EmptyClassroomPage()),
       ),
     ],
   );

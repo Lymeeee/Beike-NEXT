@@ -92,6 +92,14 @@ class _HomePageState extends State<HomePage>
     ),
   ];
 
+  late final _FeatureCardConfig _emptyClassroomCard = _FeatureCardConfig(
+    title: '无课教室',
+    description: '查询空闲自习教室',
+    icon: Icons.meeting_room_outlined,
+    color: (c) => Theme.of(c).colorScheme.primary,
+    route: '/net/empty-classroom',
+  );
+
   @override
   void onServiceInit() {
     _loadUserInfo();
@@ -625,29 +633,109 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildNetNarrowLayout() {
     return Column(
-      children: _netFeatureCards.asMap().entries.expand((entry) {
-        final index = entry.key;
-        final card = entry.value;
-        return [
-          if (index > 0) const SizedBox(height: 8),
-          SizedBox(
-            height: 100,
-            child: _buildFeatureCard(
-              context,
-              card.title,
-              card.description,
-              card.icon,
-              card.color,
-              () => context.router.pushPath(card.route),
+      children: [
+        _buildEmptyClassroomCard(context),
+        const SizedBox(height: 8),
+        ..._netFeatureCards.asMap().entries.expand((entry) {
+          final index = entry.key;
+          final card = entry.value;
+          return [
+            if (index > 0) const SizedBox(height: 8),
+            SizedBox(
+              height: 100,
+              child: _buildFeatureCard(
+                context,
+                card.title,
+                card.description,
+                card.icon,
+                card.color,
+                () => context.router.pushPath(card.route),
+              ),
             ),
-          ),
-        ];
-      }).toList(),
+          ];
+        }),
+      ],
     );
   }
 
   Widget _buildNetWideLayout() {
-    return SizedBox(height: 120, child: _buildCardRow(_netFeatureCards));
+    final cards = _netFeatureCards;
+    return Column(
+      children: [
+        _buildEmptyClassroomCard(context),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 120,
+          child: _buildCardRow([cards[0], cards[1]]),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 120,
+          child: _buildCardRow([cards[2], cards[3]]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyClassroomCard(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card.filled(
+      child: InkWell(
+        onTap: () => context.router.pushPath(_emptyClassroomCard.route),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: theme.colorScheme.primaryContainer,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(_emptyClassroomCard.icon,
+                              size: 36,
+                              color: theme
+                                  .colorScheme.onPrimaryContainer),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              _emptyClassroomCard.title,
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: theme
+                                    .colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _emptyClassroomCard.description,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: theme.colorScheme.onPrimaryContainer
+                              .withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildAccountCard(BuildContext context) {
