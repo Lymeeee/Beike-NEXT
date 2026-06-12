@@ -184,8 +184,18 @@ class ServiceProvider extends ChangeNotifier {
       integratedData,
     );
 
-    // Update widget
-    WidgetUpdater().updateFromCurriculum(integratedData);
+    // Read custom courses for this term
+    final customCoursesKey = 'custom_courses_${termInfo.year}_${termInfo.season}';
+    final customCoursesData = storeService.getPref<CustomCoursesList>(
+      customCoursesKey,
+      CustomCoursesList.fromJson,
+    );
+
+    // Update widget with custom courses merged
+    WidgetUpdater().updateFromCurriculum(
+      integratedData,
+      customCourses: customCoursesData?.courses,
+    );
 
     // Auto-disable holiday mode
     final appSettings = storeService.getPref<AppSettings>(

@@ -9,13 +9,20 @@ class WidgetUpdater {
   factory WidgetUpdater() => _instance;
   WidgetUpdater._internal();
 
-  void updateFromCurriculum(CurriculumIntegratedData? data) {
+  void updateFromCurriculum(CurriculumIntegratedData? data, {List<ClassItem>? customCourses}) {
     final payload = <String, dynamic>{
       'hasData': data != null,
     };
     if (data != null) {
       payload.addAll(data.toJson());
       payload['termSeason'] = data.currentTerm.season;
+      if (customCourses != null && customCourses.isNotEmpty) {
+        final allClasses = List<Map<String, dynamic>>.from(payload['allClasses']);
+        for (final cc in customCourses) {
+          allClasses.add(cc.toJson());
+        }
+        payload['allClasses'] = allClasses;
+      }
     }
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));
   }

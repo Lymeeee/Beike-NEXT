@@ -4,6 +4,7 @@ import '/services/provider.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
 import '/utils/app_bar.dart';
+import '/services/widget_updater.dart';
 import '/utils/sync_embeded.dart';
 import 'common.dart';
 import 'table.dart';
@@ -70,6 +71,14 @@ class _CurriculumPageState extends State<CurriculumPage>
       _customCoursesKey(term),
       CustomCoursesList(courses: _customCourses),
     );
+    // Update widgets so custom courses appear immediately
+    final cached = _serviceProvider.storeService.getConfig<CurriculumIntegratedData>(
+      'curriculum_data',
+      CurriculumIntegratedData.fromJson,
+    );
+    if (cached != null) {
+      WidgetUpdater().updateFromCurriculum(cached, customCourses: _customCourses);
+    }
   }
 
   CurriculumIntegratedData _getMergedData(CurriculumIntegratedData base) {
