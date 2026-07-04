@@ -88,6 +88,11 @@ class CourseGradeItem extends BaseDataClass {
   final double hours;
   final double credit;
   final double score;
+  final String rwid;
+  final String cjid;
+  final int? rank;
+  final int? totalStudents;
+  final List<ScoreDetail>? scoreDetails;
 
   CourseGradeItem({
     required this.courseId,
@@ -106,6 +111,11 @@ class CourseGradeItem extends BaseDataClass {
     required this.hours,
     required this.credit,
     required this.score,
+    this.rwid = '',
+    this.cjid = '',
+    this.rank,
+    this.totalStudents,
+    this.scoreDetails,
   });
 
   @override
@@ -889,4 +899,122 @@ class CustomCoursesList extends BaseDataClass {
   Map<String, dynamic> toJson() => {
         'courses': courses.map((e) => e.toJson()).toList(),
       };
+}
+
+class ScoreDetail {
+  final String name;
+  final double score;
+  final double maxScore;
+  final double weight;
+
+  ScoreDetail({
+    required this.name,
+    required this.score,
+    required this.maxScore,
+    required this.weight,
+  });
+
+  factory ScoreDetail.fromJson(Map<String, dynamic> json) {
+    return ScoreDetail(
+      name: json['FXMC'] as String? ?? '',
+      score: double.tryParse(json['DF']?.toString() ?? '0') ?? 0,
+      maxScore: double.tryParse(json['MF']?.toString() ?? '0') ?? 0,
+      weight: double.tryParse(json['LJFXBZ']?.toString() ?? '0') ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'FXMC': name,
+        'DF': score,
+        'MF': maxScore,
+        'LJFXBZ': weight,
+      };
+}
+
+class CachedExamList extends BaseDataClass {
+  final List<ExamInfo> exams;
+  final DateTime fetchTime;
+
+  CachedExamList({required this.exams, required this.fetchTime});
+
+  @override
+  Map<String, dynamic> getEssentials() => {
+        'count': exams.length,
+        'fetchTime': fetchTime.toIso8601String(),
+      };
+
+  factory CachedExamList.fromJson(Map<String, dynamic> json) {
+    return CachedExamList(
+      exams: (json['exams'] as List<dynamic>?)
+              ?.map((e) => ExamInfo.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      fetchTime: DateTime.parse(json['fetchTime'] as String),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'exams': exams.map((e) => e.toJson()).toList(),
+        'fetchTime': fetchTime.toIso8601String(),
+      };
+}
+
+class CachedGradeList extends BaseDataClass {
+  final List<CourseGradeItem> grades;
+  final DateTime fetchTime;
+
+  CachedGradeList({required this.grades, required this.fetchTime});
+
+  @override
+  Map<String, dynamic> getEssentials() => {
+        'count': grades.length,
+        'fetchTime': fetchTime.toIso8601String(),
+      };
+
+  factory CachedGradeList.fromJson(Map<String, dynamic> json) {
+    return CachedGradeList(
+      grades: (json['grades'] as List<dynamic>?)
+              ?.map(
+                  (e) => CourseGradeItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      fetchTime: DateTime.parse(json['fetchTime'] as String),
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'grades': grades.map((e) => e.toJson()).toList(),
+        'fetchTime': fetchTime.toIso8601String(),
+      };
+}
+
+class GpaOverview {
+  final String? rank;
+  final String? totalStudents;
+  final String? ratio;
+  final String? avgGpaRank;
+  final String? earnedCredits;
+  final String? passedCourses;
+
+  GpaOverview({
+    this.rank,
+    this.totalStudents,
+    this.ratio,
+    this.avgGpaRank,
+    this.earnedCredits,
+    this.passedCourses,
+  });
+
+  factory GpaOverview.fromJson(Map<String, dynamic> json) {
+    return GpaOverview(
+      rank: json['PM']?.toString(),
+      totalStudents: json['ZRS']?.toString(),
+      ratio: json['BL']?.toString(),
+      avgGpaRank: json['PJXFJ_PM']?.toString(),
+      earnedCredits: json['HDXF']?.toString(),
+      passedCourses: json['TGKC']?.toString(),
+    );
+  }
 }

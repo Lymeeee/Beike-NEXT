@@ -40,6 +40,12 @@ abstract class BaseCoursesService extends ChangeNotifier with BaseService {
 
   Future<List<CourseGradeItem>> getGrades();
 
+  GpaOverview? getCachedGpaOverview();
+
+  Future<GpaOverview?> fetchGpaOverview();
+
+  Future<List<ScoreDetail>> fetchScoreDetails(String rwid, String cjid);
+
   Future<List<ExamInfo>> getExams(TermInfo termInfo);
 
   Future<List<ClassItem>> getCurriculum(TermInfo termInfo);

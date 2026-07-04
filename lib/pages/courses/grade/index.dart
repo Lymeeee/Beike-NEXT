@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:auto_route/auto_route.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
@@ -13,14 +12,12 @@ class GradePage extends StatefulWidget {
 
 class _GradePageState extends State<GradePage> {
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
-  final TextEditingController _searchController = TextEditingController();
 
   List<CourseGradeItem>? _allGrades;
-  List<CourseGradeItem>? _filteredGrades;
+  DateTime? _lastFetchTime;
 
   bool _isLoading = false;
   String? _errorMessage;
-  String _currentSearchQuery = '';
 
   final Set<String> _selectedCourseIds = {};
   bool _isAllSelected = false;
@@ -28,180 +25,71 @@ class _GradePageState extends State<GradePage> {
   @override
   void initState() {
     super.initState();
-    _serviceProvider.addListener(_onServiceStatusChanged);
-    _loadGrades();
+    _loadCachedGrades();
   }
 
   @override
   void dispose() {
-    _serviceProvider.removeListener(_onServiceStatusChanged);
-    _searchController.dispose();
     super.dispose();
   }
 
-  void _onServiceStatusChanged() {
-    if (mounted && _serviceProvider.coursesService.isOnline) {
+  void _loadCachedGrades() {
+    final cached = _serviceProvider.storeService.getPref<CachedGradeList>(
+      'cached_grades',
+      CachedGradeList.fromJson,
+    );
+    if (cached != null && mounted) {
       setState(() {
-        _loadGrades();
+        _allGrades = cached.grades;
+        _lastFetchTime = cached.fetchTime;
       });
-    }
-  }
-
-  Future<void> _loadGrades() async {
-    final service = _serviceProvider.coursesService;
-
-    if (mounted && service.isOnline) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      try {
-        final grades = await service.getGrades();
-        if (mounted) {
-          setState(() {
-            _allGrades = grades;
-            _filteredGrades = grades;
-            _isLoading = false;
-            if (_currentSearchQuery.isNotEmpty) {
-              _performSearch(_currentSearchQuery);
-            }
-          });
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = e.toString();
-            _isLoading = false;
-          });
-        }
-      }
     }
   }
 
   Future<void> _refreshGrades() async {
-    await _loadGrades();
-  }
-
-  void _performSearch(String query) {
-    if (_allGrades == null) return;
+    final service = _serviceProvider.coursesService;
 
     setState(() {
-      _currentSearchQuery = query;
-      if (query.isEmpty) {
-        _filteredGrades = _allGrades;
-      } else {
-        _filteredGrades = _searchGrades(_allGrades!, query);
-      }
-
-      // Clear the selection state of courses that are filtered out
-      if (_filteredGrades != null) {
-        final visibleCourseIds = _filteredGrades!
-            .map((g) => g.courseId)
-            .toSet();
-        _selectedCourseIds.retainWhere(
-          (courseId) => visibleCourseIds.contains(courseId),
-        );
-
-        _isAllSelected =
-            visibleCourseIds.isNotEmpty &&
-            visibleCourseIds.every((id) => _selectedCourseIds.contains(id));
-      }
+      _isLoading = true;
+      _errorMessage = null;
     });
-  }
 
-  List<CourseGradeItem> _searchGrades(
-    List<CourseGradeItem> grades,
-    String query,
-  ) {
-    final queryLower = query.toLowerCase();
+    try {
+      final grades = await service.getGrades();
+      final fetchTime = DateTime.now();
 
-    // 按优先级排序的搜索结果
-    final List<CourseGradeItem> priorityResults = [];
-    final Set<String> addedIds = <String>{};
-
-    // 1. 课程名称及alt名称模糊匹配
-    for (final grade in grades) {
-      final courseNameMatch = grade.courseName.toLowerCase().contains(
-        queryLower,
-      );
-      final courseNameAltMatch =
-          grade.courseNameAlt?.toLowerCase().contains(queryLower) ?? false;
-
-      if (courseNameMatch || courseNameAltMatch) {
-        final id = '${grade.courseId}_${grade.termId}';
-        if (!addedIds.contains(id)) {
-          priorityResults.add(grade);
-          addedIds.add(id);
-        }
-      }
-    }
-
-    // 2. 课程代码模糊匹配
-    for (final grade in grades) {
-      final courseIdMatch = grade.courseId.toLowerCase().contains(queryLower);
-
-      if (courseIdMatch) {
-        final id = '${grade.courseId}_${grade.termId}';
-        if (!addedIds.contains(id)) {
-          priorityResults.add(grade);
-          addedIds.add(id);
-        }
-      }
-    }
-
-    // 3. 开课学院名称及alt名称模糊匹配
-    for (final grade in grades) {
-      final schoolNameMatch =
-          grade.schoolName?.toLowerCase().contains(queryLower) ?? false;
-      final schoolNameAltMatch =
-          grade.schoolNameAlt?.toLowerCase().contains(queryLower) ?? false;
-
-      if (schoolNameMatch || schoolNameAltMatch) {
-        final id = '${grade.courseId}_${grade.termId}';
-        if (!addedIds.contains(id)) {
-          priorityResults.add(grade);
-          addedIds.add(id);
-        }
-      }
-    }
-
-    // 4. 学期模糊匹配及alt名称模糊匹配
-    for (final grade in grades) {
-      final termNameMatch = grade.termName.toLowerCase().contains(queryLower);
-      final termNameAltMatch = grade.termNameAlt.toLowerCase().contains(
-        queryLower,
+      _serviceProvider.storeService.putPref<CachedGradeList>(
+        'cached_grades',
+        CachedGradeList(grades: grades, fetchTime: fetchTime),
       );
 
-      if (termNameMatch || termNameAltMatch) {
-        final id = '${grade.courseId}_${grade.termId}';
-        if (!addedIds.contains(id)) {
-          priorityResults.add(grade);
-          addedIds.add(id);
-        }
+      if (mounted) {
+        setState(() {
+          _allGrades = grades;
+          _lastFetchTime = fetchTime;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
       }
     }
-
-    return priorityResults;
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    _performSearch('');
   }
 
   void _toggleSelectAll() {
-    if (_filteredGrades == null) return;
+    if (_allGrades == null) return;
 
     setState(() {
       if (_isAllSelected) {
-        // Cancel select all
         _selectedCourseIds.clear();
         _isAllSelected = false;
       } else {
-        // Select all
         _selectedCourseIds.clear();
-        for (final grade in _filteredGrades!) {
+        for (final grade in _allGrades!) {
           _selectedCourseIds.add(grade.courseId);
         }
         _isAllSelected = true;
@@ -217,15 +105,42 @@ class _GradePageState extends State<GradePage> {
         _selectedCourseIds.add(courseId);
       }
 
-      if (_filteredGrades != null) {
-        final visibleCourseIds = _filteredGrades!
-            .map((g) => g.courseId)
-            .toSet();
-        _isAllSelected =
-            visibleCourseIds.isNotEmpty &&
+      if (_allGrades != null) {
+        final visibleCourseIds =
+            _allGrades!.map((g) => g.courseId).toSet();
+        _isAllSelected = visibleCourseIds.isNotEmpty &&
             visibleCourseIds.every((id) => _selectedCourseIds.contains(id));
       }
     });
+  }
+
+  void _showGradeDetail(CourseGradeItem grade) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _GradeDetailDialog(grade: grade),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
   }
 
   void _showQuickCalculation() {
@@ -271,8 +186,7 @@ class _GradePageState extends State<GradePage> {
 
     _showCalculationDialog(
       title: '快捷计算',
-      content:
-          '已选择课程数：${selectedGrades.length}\n'
+      content: '已选择课程数：${selectedGrades.length}\n'
           '平均成绩：${averageScore.toStringAsFixed(4)}\n'
           '加权成绩：${weightedScore.toStringAsFixed(4)}',
       isError: false,
@@ -308,31 +222,7 @@ class _GradePageState extends State<GradePage> {
   }
 
   Widget _buildBody() {
-    final service = _serviceProvider.coursesService;
-
-    if (!service.isOnline) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: Container(
-                padding: EdgeInsets.only(right: 8.0),
-                child: Icon(Icons.login, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
-              onPressed: () => context.router.pushPath('/courses/account'),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '请先登录',
-              style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_isLoading) {
+    if (_isLoading && _allGrades == null) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -345,39 +235,28 @@ class _GradePageState extends State<GradePage> {
       );
     }
 
-    if (_errorMessage != null) {
+    if (_errorMessage != null && _allGrades == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error, size: 64, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error, size: 64,
+                color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               '加载失败',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               _errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _refreshGrades, child: const Text('重试')),
-          ],
-        ),
-      );
-    }
-
-    // No data
-    if (_allGrades == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.assessment, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            SizedBox(height: 16),
-            Text('暂无成绩数据', style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            FilledButton.tonal(
+                onPressed: _refreshGrades, child: const Text('重试')),
           ],
         ),
       );
@@ -392,123 +271,117 @@ class _GradePageState extends State<GradePage> {
   }
 
   Widget _buildTableOrEmptyState() {
-    if (_filteredGrades == null || _filteredGrades!.isEmpty) {
-      if (_currentSearchQuery.isNotEmpty) {
-        // Searching but no data
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.search_off, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(height: 16),
-              Text(
-                '没有找到匹配"$_currentSearchQuery"的成绩',
-                style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.tonal(
-                onPressed: _clearSearch,
-                child: const Text('清除搜索'),
-              ),
-            ],
-          ),
-        );
-      } else {
-        // No searching and no data
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.assessment, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              SizedBox(height: 16),
-              Text(
-                '暂无成绩数据',
-                style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
-            ],
-          ),
-        );
-      }
+    if (_allGrades == null || _allGrades!.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assessment, size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(
+              _allGrades == null ? '点击刷新获取成绩数据' : '暂无成绩数据',
+              style: TextStyle(
+                  fontSize: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
     }
 
     return _buildResponsiveTable();
   }
 
   Widget _buildActionBar() {
-    final service = _serviceProvider.coursesService;
-
     return Row(
       children: [
         Expanded(
-          flex: 3,
-          child: SizedBox(
+          child: Container(
             height: 36,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索课程名称、代码、学院或学期...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _currentSearchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: _clearSearch,
-                        padding: EdgeInsets.zero,
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.all(8),
-                isDense: true,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _lastFetchTime != null
+                  ? '上次更新: ${_lastFetchTime!.toLocal().toString().substring(0, 16)}'
+                  : '点击刷新获取成绩数据',
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
-              style: const TextStyle(fontSize: 14),
-              onChanged: _performSearch,
-              onSubmitted: _performSearch,
             ),
           ),
         ),
-
-        const SizedBox(width: 12),
-
-        FilledButton.tonalIcon(
-          onPressed: (service.isOnline && !_isLoading) ? _refreshGrades : null,
-          icon: _isLoading
+        const SizedBox(width: 8),
+        FilledButton.tonal(
+          style: ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.primaryContainer,
+            ),
+            foregroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
+          onPressed: !_isLoading ? _refreshGrades : null,
+          child: _isLoading
               ? const SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 18,
+                  height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.refresh, size: 18),
-          label: Text(_isLoading ? '刷新中...' : '刷新'),
         ),
-
         const SizedBox(width: 8),
-
-        FilledButton.tonalIcon(
+        FilledButton.tonal(
+          style: ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.primaryContainer,
+            ),
+            foregroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
           onPressed: _showQuickCalculation,
-          icon: const Icon(Icons.calculate, size: 18),
-          label: const Text('快捷计算'),
+          child: const Icon(Icons.calculate, size: 18),
+        ),
+        const SizedBox(width: 8),
+        FilledButton.tonal(
+          style: ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.primaryContainer,
+            ),
+            foregroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
+          onPressed: _showOverview,
+          child: const Icon(Icons.analytics, size: 18),
         ),
       ],
     );
   }
 
+  void _showOverview() {
+    showDialog(
+      context: context,
+      builder: (ctx) => _GpaOverviewDialog(),
+    );
+  }
+
   Widget _buildResponsiveTable() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth;
 
         final columnConfig = [
           {'name': '', 'minWidth': 50.0, 'flex': 0, 'isNumeric': false},
-          {'name': '学期', 'minWidth': 80.0, 'flex': 2, 'isNumeric': false},
-          {'name': '开课院系', 'minWidth': 80.0, 'flex': 2, 'isNumeric': false},
-          {'name': '课程代码', 'minWidth': 80.0, 'flex': 2, 'isNumeric': false},
-          {'name': '课程名称', 'minWidth': 100.0, 'flex': 4, 'isNumeric': false},
-          {'name': '课程性质', 'minWidth': 80.0, 'flex': 1, 'isNumeric': false},
-          {'name': '课程类别', 'minWidth': 80.0, 'flex': 1, 'isNumeric': false},
-          {'name': '补考标记', 'minWidth': 80.0, 'flex': 1, 'isNumeric': false},
-          {'name': '考核方式', 'minWidth': 80.0, 'flex': 1, 'isNumeric': false},
-          {'name': '学时', 'minWidth': 60.0, 'flex': 1, 'isNumeric': true},
+          {'name': '课程名称', 'minWidth': 160.0, 'flex': 5, 'isNumeric': false},
           {'name': '学分', 'minWidth': 60.0, 'flex': 1, 'isNumeric': true},
           {'name': '成绩', 'minWidth': 60.0, 'flex': 1, 'isNumeric': true},
         ];
@@ -524,169 +397,147 @@ class _GradePageState extends State<GradePage> {
 
         final needsHorizontalScroll = availableWidth < totalMinWidth;
 
-        Widget table;
+        List<double> columnWidths;
+        double tableWidth;
+
         if (needsHorizontalScroll) {
-          final columnWidths = columnConfig
+          columnWidths = columnConfig
               .map((col) => col['minWidth'] as double)
               .toList();
-          table = _buildFixedWidthTable(
-            columnConfig,
-            columnWidths,
-            totalMinWidth,
-          );
+          tableWidth = totalMinWidth;
         } else {
           final extraWidth = availableWidth - totalMinWidth;
-          final columnWidths = columnConfig.map((col) {
+          columnWidths = columnConfig.map((col) {
             final minWidth = col['minWidth'] as double;
             final flex = col['flex'] as int;
+            if (flex == 0) return minWidth;
             final extraForThisColumn = extraWidth * (flex / totalFlex);
             return minWidth + extraForThisColumn;
           }).toList();
-          table = _buildFixedWidthTable(
-            columnConfig,
-            columnWidths,
-            availableWidth,
-          );
+          tableWidth = availableWidth;
         }
 
-        // 总是包装在水平滚动中，以防止溢出
+        final dividerColor = Theme.of(context)
+            .colorScheme.outlineVariant.withValues(alpha: 0.4);
+
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const AlwaysScrollableScrollPhysics(),
           child: SingleChildScrollView(
             scrollDirection: Axis.vertical,
             physics: const AlwaysScrollableScrollPhysics(),
-            child: table,
+            child: SizedBox(
+              width: tableWidth,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primaryContainer,
+                        borderRadius: needsHorizontalScroll
+                            ? null
+                            : const BorderRadius.vertical(
+                                top: Radius.circular(16)),
+                      ),
+                      child: Row(
+                        children:
+                            columnConfig.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final column = entry.value;
+                          final isCheckbox = index == 0;
+
+                          if (isCheckbox) {
+                            return SizedBox(
+                              width: columnWidths[index],
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: Checkbox(
+                                  value: _isAllSelected,
+                                  onChanged: (_) => _toggleSelectAll(),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                            );
+                          } else {
+                            return _buildHeaderCell(
+                              column['name'] as String,
+                              columnWidths[index],
+                              isNumeric: column['isNumeric'] as bool,
+                            );
+                          }
+                        }).toList(),
+                      ),
+                    ),
+                    Divider(height: 1, color: dividerColor),
+                    ...List.generate(_allGrades!.length, (i) {
+                      final grade = _allGrades![i];
+                      final isLast = i == _allGrades!.length - 1;
+                      return Column(
+                        children: [
+                          if (i > 0)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16),
+                              child: Divider(
+                                  height: 1, color: dividerColor),
+                            ),
+                          InkWell(
+                            onTap: () => _showGradeDetail(grade),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: i.isEven
+                                    ? null
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerLowest,
+                                borderRadius: isLast && !needsHorizontalScroll
+                                    ? const BorderRadius.vertical(
+                                        bottom: Radius.circular(16))
+                                    : null,
+                              ),
+                              child: Row(children:
+                                  _buildDataRow(grade, columnWidths)),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildFixedWidthTable(
-    List<Map<String, Object>> columnConfig,
-    List<double> columnWidths,
-    double tableWidth,
-  ) {
-    return SizedBox(
-      width: tableWidth,
-      child: Column(
-        children: [
-          // Table header
-          Container(
-            height: 60.0,
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              border: Border(
-                top: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                ),
-                bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                ),
-              ),
-            ),
-            child: Row(
-              children: columnConfig.asMap().entries.map((entry) {
-                final index = entry.key;
-                final column = entry.value;
-                final isCheckbox = index == 0;
-
-                if (isCheckbox) {
-                  // 全选checkbox列
-                  return Container(
-                    width: columnWidths[index],
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0,
-                      vertical: 4.0,
-                    ),
-                    child: Checkbox(
-                      value: _isAllSelected,
-                      onChanged: (_) => _toggleSelectAll(),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  );
-                } else {
-                  return _buildHeaderCell(
-                    column['name'] as String,
-                    columnWidths[index],
-                    isNumeric: column['isNumeric'] as bool,
-                  );
-                }
-              }).toList(),
-            ),
-          ),
-
-          // Data rows
-          ..._filteredGrades!.asMap().entries.map((entry) {
-            final grade = entry.value;
-
-            return InkWell(
-              onTap: () {
-                // Do nothing
-              },
-              child: Container(
-                height: 80.0,
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withValues(alpha: 0.6),
-                      width: 0.5,
-                    ),
-                  ),
-                ),
-                child: Row(children: _buildDataRow(grade, columnWidths)),
-              ),
-            );
-          }),
-        ],
       ),
     );
   }
 
   List<Widget> _buildDataRow(CourseGradeItem grade, List<double> columnWidths) {
     return [
-      // Checkbox
-      _buildDataCell(
-        Checkbox(
-          value: _selectedCourseIds.contains(grade.courseId),
-          onChanged: (_) => _toggleCourseSelection(grade.courseId),
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      SizedBox(
+        width: columnWidths[0],
+        child: Align(
+          alignment: Alignment.center,
+          child: Checkbox(
+            value: _selectedCourseIds.contains(grade.courseId),
+            onChanged: (_) => _toggleCourseSelection(grade.courseId),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
-        columnWidths[0],
       ),
-      _buildDataCell(_buildTermCell(grade), columnWidths[1]),
-      _buildDataCell(_buildSchoolCell(grade), columnWidths[2]),
+      _buildDataCell(_buildCourseNameCell(grade), columnWidths[1]),
       _buildDataCell(
-        Text(grade.courseId, style: const TextStyle(fontSize: 14)),
-        columnWidths[3],
-      ),
-      _buildDataCell(_buildCourseNameCell(grade), columnWidths[4]),
-      _buildDataCell(
-        Text(grade.type, style: const TextStyle(fontSize: 14)),
-        columnWidths[5],
-      ),
-      _buildDataCell(
-        Text(grade.category, style: const TextStyle(fontSize: 14)),
-        columnWidths[6],
-      ),
-      _buildDataCell(_buildMakeupStatusCell(grade), columnWidths[7]),
-      _buildDataCell(
-        Text(grade.examType ?? '-', style: const TextStyle(fontSize: 14)),
-        columnWidths[8],
-      ),
-      _buildDataCell(
-        Text(grade.hours.toString()),
-        columnWidths[9],
-        isNumeric: true,
-      ),
-      _buildDataCell(
-        Text(grade.credit.toString()),
-        columnWidths[10],
+        Text(grade.credit.toStringAsFixed(1)),
+        columnWidths[2],
         isNumeric: true,
       ),
       _buildDataCell(
@@ -694,10 +545,12 @@ class _GradePageState extends State<GradePage> {
           grade.score.toString(),
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: grade.score >= 60 ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.error,
+            color: grade.score >= 60
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.error,
           ),
         ),
-        columnWidths[11],
+        columnWidths[3],
         isNumeric: true,
       ),
     ];
@@ -706,7 +559,7 @@ class _GradePageState extends State<GradePage> {
   Widget _buildHeaderCell(String text, double width, {bool isNumeric = false}) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Text(
         text,
         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -719,62 +572,11 @@ class _GradePageState extends State<GradePage> {
   Widget _buildDataCell(Widget child, double width, {bool isNumeric = false}) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Align(
         alignment: isNumeric ? Alignment.center : Alignment.centerLeft,
         child: child,
       ),
-    );
-  }
-
-  Widget _buildTermCell(CourseGradeItem grade) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          grade.termName,
-          style: const TextStyle(fontSize: 14),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 2,
-        ),
-        if (grade.termNameAlt.isNotEmpty)
-          Text(
-            grade.termNameAlt,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSchoolCell(CourseGradeItem grade) {
-    if (grade.schoolName == null && grade.schoolNameAlt == null) {
-      return const Text('-');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (grade.schoolName != null)
-          Text(
-            grade.schoolName!,
-            style: const TextStyle(fontSize: 14),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
-        if (grade.schoolNameAlt != null && grade.schoolNameAlt!.isNotEmpty)
-          Text(
-            grade.schoolNameAlt!,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-      ],
     );
   }
 
@@ -793,38 +595,249 @@ class _GradePageState extends State<GradePage> {
         if (grade.courseNameAlt != null && grade.courseNameAlt!.isNotEmpty)
           Text(
             grade.courseNameAlt!,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
       ],
     );
   }
+}
 
-  Widget _buildMakeupStatusCell(CourseGradeItem grade) {
-    if (grade.makeupStatus == null && grade.makeupStatusAlt == null) {
-      return const Text('-');
+class _GradeDetailDialog extends StatefulWidget {
+  final CourseGradeItem grade;
+
+  const _GradeDetailDialog({required this.grade});
+
+  @override
+  State<_GradeDetailDialog> createState() => _GradeDetailDialogState();
+}
+
+class _GradeDetailDialogState extends State<_GradeDetailDialog> {
+  List<ScoreDetail>? _details;
+  String? _detailError;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDetails();
+  }
+
+  void _loadDetails() {
+    final grade = widget.grade;
+    if (grade.rwid.isEmpty || grade.cjid.isEmpty) {
+      setState(() => _isLoading = false);
+      return;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (grade.makeupStatus != null)
-          Text(
-            grade.makeupStatus!,
-            style: const TextStyle(fontSize: 14),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
+    setState(() => _isLoading = true);
+
+    final service = ServiceProvider.instance.coursesService;
+    service.fetchScoreDetails(grade.rwid, grade.cjid).then((d) {
+      if (mounted) setState(() { _details = d; _isLoading = false; });
+    }).catchError((e) {
+      if (mounted) setState(() { _detailError = e.toString(); _isLoading = false; });
+    });
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
-        if (grade.makeupStatusAlt != null && grade.makeupStatusAlt!.isNotEmpty)
-          Text(
-            grade.makeupStatusAlt!,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final grade = widget.grade;
+
+    return AlertDialog(
+      title: Text(grade.courseName),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _detailRow('课程代码', grade.courseId),
+            _detailRow('课程名称', grade.courseName),
+            if (grade.courseNameAlt != null && grade.courseNameAlt!.isNotEmpty)
+              _detailRow('课程名称(英文)', grade.courseNameAlt!),
+            _detailRow('学期', grade.termName),
+            if (grade.termNameAlt.isNotEmpty)
+              _detailRow('学期(英文)', grade.termNameAlt),
+            if (grade.schoolName != null && grade.schoolName!.isNotEmpty)
+              _detailRow('开课院系', grade.schoolName!),
+            if (grade.schoolNameAlt != null && grade.schoolNameAlt!.isNotEmpty)
+              _detailRow('开课院系(英文)', grade.schoolNameAlt!),
+            _detailRow('课程性质', grade.type),
+            _detailRow('课程类别', grade.category),
+            if (grade.makeupStatus != null && grade.makeupStatus!.isNotEmpty)
+              _detailRow('补考标记', grade.makeupStatus!),
+            if (grade.examType != null && grade.examType!.isNotEmpty)
+              _detailRow('考核方式', grade.examType!),
+            _detailRow('学时', grade.hours.toStringAsFixed(1)),
+            _detailRow('学分', grade.credit.toStringAsFixed(1)),
+            _detailRow('成绩', grade.score.toString()),
+            const Divider(height: 24),
+            Text(
+              '成绩明细',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (grade.rwid.isEmpty || grade.cjid.isEmpty)
+              Text('暂无分项成绩数据',
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant))
+            else if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (_detailError != null)
+              Text('加载失败',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error))
+            else if (_details != null && _details!.isNotEmpty)
+              ..._details!.map((d) => _detailRow(
+                    d.name,
+                    '${d.score.toStringAsFixed(1)} / ${d.maxScore.toStringAsFixed(1)}  (${d.weight.toStringAsFixed(0)}%)',
+                  ))
+            else
+              Text('暂无分项成绩数据',
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            if (grade.rank != null || grade.totalStudents != null) ...[
+              if (grade.rank != null)
+                _detailRow('班级排名', '${grade.rank}'),
+              if (grade.totalStudents != null)
+                _detailRow('班级总人数', '${grade.totalStudents}'),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('关闭'),
+        ),
+      ],
+    );
+  }
+}
+
+class _GpaOverviewDialog extends StatefulWidget {
+  const _GpaOverviewDialog();
+
+  @override
+  State<_GpaOverviewDialog> createState() => _GpaOverviewDialogState();
+}
+
+class _GpaOverviewDialogState extends State<_GpaOverviewDialog> {
+  GpaOverview? _data;
+  String? _error;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    final service = ServiceProvider.instance.coursesService;
+    // Try cached first
+    final cached = service.getCachedGpaOverview();
+    if (cached != null) {
+      if (mounted) setState(() { _data = cached; _isLoading = false; });
+      return;
+    }
+    // Fetch from page
+    service.fetchGpaOverview().then((d) {
+      if (mounted) setState(() { _data = d; _isLoading = false; });
+    }).catchError((e) {
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+    });
+  }
+
+  Widget _row(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
+          Expanded(child: Text(value ?? '-', style: const TextStyle(fontSize: 15))),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('成绩总览'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              Text('加载失败',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error))
+            else if (_data != null) ...[
+              _row('排名', (_data!.rank != null && _data!.totalStudents != null)
+                  ? '${_data!.rank} / ${_data!.totalStudents}' : null),
+              _row('比例', _data!.ratio != null ? '${_data!.ratio}%' : null),
+              _row('平均学分绩点排名', _data!.avgGpaRank),
+              _row('获得学分', _data!.earnedCredits),
+              _row('通过课程', _data!.passedCourses),
+            ] else
+              const Text('暂无数据'),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('关闭'),
+        ),
       ],
     );
   }

@@ -31,6 +31,10 @@ extension CourseGradeItemUstbByytExtension on CourseGradeItem {
       hours: double.tryParse(data['xs']?.toString() ?? '0') ?? 0,
       credit: double.tryParse(data['xf']?.toString() ?? '0') ?? 0,
       score: double.tryParse(data['zpzscj']?.toString() ?? '0') ?? 0,
+      rwid: (data['rwid'] ?? data['RWID'] ?? data['rw_id'])?.toString() ?? '',
+      cjid: (data['id'] ?? data['ID'] ?? data['cjid'] ?? data['xh'])?.toString() ?? '',
+      rank: int.tryParse(data['pm']?.toString() ?? ''),
+      totalStudents: int.tryParse(data['zrs']?.toString() ?? ''),
     );
   }
 }

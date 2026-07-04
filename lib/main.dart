@@ -108,7 +108,7 @@ class _MainState extends State<Main> {
   static ThemeData _buildTheme(ColorScheme colorScheme) {
     return ThemeData(
       colorScheme: colorScheme,
-      fontFamily: 'SourceHanSansSC',
+      fontFamily: 'HarmonyOS_Sans_SC',
       useMaterial3: true,
       // AppBar
       appBarTheme: AppBarTheme(

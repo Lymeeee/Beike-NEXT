@@ -188,6 +188,6 @@ class _MainLayoutState extends State<MainLayout> {
         _bottomTabs.any((tab) => tab.rootPath == _currentPath);
     return isTabRoot
         ? DoubleBackToExitWrapper(child: content)
-        : CommonPopWrapper(child: content);
+        : content;
   }
 }

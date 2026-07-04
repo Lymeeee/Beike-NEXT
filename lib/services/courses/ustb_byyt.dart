@@ -188,10 +188,6 @@ class UstbByytService extends BaseCoursesService {
 
   @override
   Future<UserInfo> getUserInfo() async {
-    if (status == ServiceStatus.offline) {
-      throw const CourseServiceOffline();
-    }
-
     Response response;
     try {
       response = await _dio.post('/user/me');
@@ -214,10 +210,6 @@ class UstbByytService extends BaseCoursesService {
 
   @override
   Future<List<CourseGradeItem>> getGrades() async {
-    if (status == ServiceStatus.offline) {
-      throw const CourseServiceOffline();
-    }
-
     Response response;
     try {
       response = await _dio.post(
@@ -226,11 +218,9 @@ class UstbByytService extends BaseCoursesService {
           'xn': null,
           'xq': null,
           'kcmc': null,
-          'cxbj': '-1',
           'pylx': '1',
           'current': 1,
           'pageSize': 1000,
-          'sffx': null,
         },
         options: Options(contentType: Headers.jsonContentType),
       );
@@ -256,6 +246,34 @@ class UstbByytService extends BaseCoursesService {
         return [];
       }
 
+      // Try to extract grgpa from various possible locations in response
+      Map<String, dynamic>? grgpa;
+      final content = data['content'];
+      if (content is Map<String, dynamic>) {
+        grgpa = content['grgpa'] ?? content['grGpa'] ?? content['gpa'];
+        if (grgpa == null) {
+          // Search all keys in content for grgpa-like data
+          for (final k in content.keys) {
+            if (k.toString().toLowerCase().contains('grgpa') ||
+                k.toString().toLowerCase().contains('gpa')) {
+              grgpa = content[k];
+              break;
+            }
+          }
+        }
+      }
+      // Also try top-level
+      grgpa ??= data['grgpa'] ?? data['grGpa'];
+      // Also try to find PM/ZRS anywhere in response
+      if (grgpa == null && content is Map<String, dynamic>) {
+        if (content.containsKey('PM') || content.containsKey('ZRS')) {
+          grgpa = content;
+        }
+      }
+      if (grgpa != null && grgpa is Map<String, dynamic>) {
+        _cachedGpaOverview = GpaOverview.fromJson(grgpa);
+      }
+
       final gradeList = data['content']['list'] as List<dynamic>;
 
       return gradeList
@@ -272,12 +290,84 @@ class UstbByytService extends BaseCoursesService {
     }
   }
 
+  GpaOverview? _cachedGpaOverview;
+
   @override
-  Future<List<ExamInfo>> getExams(TermInfo termInfo) async {
-    if (status == ServiceStatus.offline) {
-      throw const CourseServiceOffline();
+  GpaOverview? getCachedGpaOverview() => _cachedGpaOverview;
+
+  @override
+  Future<GpaOverview?> fetchGpaOverview() async {
+    // Try multiple possible API endpoints
+    final endpoints = [
+      '/cjgl/grcjcx/getgpa',
+    ];
+
+    for (final endpoint in endpoints) {
+      try {
+        final response = await _dio.post(
+          endpoint,
+          options: Options(
+            contentType: Headers.formUrlEncodedContentType,
+            validateStatus: (s) => s != null && s < 500,
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          final data = response.data;
+          Map<String, dynamic>? grgpa;
+
+          if (data is Map<String, dynamic>) {
+            grgpa = data['grgpa'] ?? data['data']?['grgpa'];
+            grgpa ??= data.containsKey('PM') ? data : null;
+          }
+
+          if (grgpa != null) {
+            _cachedGpaOverview = GpaOverview.fromJson(grgpa);
+            return _cachedGpaOverview;
+          }
+        }
+      } catch (_) {
+        // Try next endpoint
+      }
     }
 
+    return null;
+  }
+
+  Future<List<ScoreDetail>> fetchScoreDetails(String rwid, String cjid) async {
+    Response response;
+    try {
+      response = await _dio.post(
+        '/cjgl/grcjcx/seeFx',
+        data: {'rwid': rwid, 'cjid': cjid},
+        options: Options(contentType: Headers.formUrlEncodedContentType),
+      );
+    } catch (e) {
+      throw CourseServiceNetworkError('Failed to fetch score details', e);
+    }
+
+    CourseServiceException.raiseForStatus(response.statusCode!, setError);
+
+    try {
+      final data = response.data;
+      if (data is List) {
+        return data
+            .map((item) => ScoreDetail.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on CourseServiceException {
+      rethrow;
+    } catch (e) {
+      throw CourseServiceBadResponse(
+        'Failed to parse score details response',
+        e,
+      );
+    }
+  }
+
+  @override
+  Future<List<ExamInfo>> getExams(TermInfo termInfo) async {
     Response response;
     try {
       response = await _dio.post(

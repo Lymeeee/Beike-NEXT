@@ -88,6 +88,13 @@ CourseGradeItem _$CourseGradeItemFromJson(Map<String, dynamic> json) =>
         hours: (json['hours'] as num).toDouble(),
         credit: (json['credit'] as num).toDouble(),
         score: (json['score'] as num).toDouble(),
+        rwid: json['rwid'] as String? ?? '',
+        cjid: json['cjid'] as String? ?? '',
+        rank: (json['rank'] as num?)?.toInt(),
+        totalStudents: (json['totalStudents'] as num?)?.toInt(),
+        scoreDetails: (json['scoreDetails'] as List<dynamic>?)
+            ?.map((e) => ScoreDetail.fromJson(e as Map<String, dynamic>))
+            .toList(),
       )
       ..$lastUpdateTime = _$JsonConverterFromJson<String, DateTime>(
         json[r'$lastUpdateTime'],
@@ -116,6 +123,11 @@ Map<String, dynamic> _$CourseGradeItemToJson(CourseGradeItem instance) =>
       'hours': instance.hours,
       'credit': instance.credit,
       'score': instance.score,
+      'rwid': instance.rwid,
+      'cjid': instance.cjid,
+      'rank': instance.rank,
+      'totalStudents': instance.totalStudents,
+      'scoreDetails': instance.scoreDetails,
     };
 
 ClassItem _$ClassItemFromJson(Map<String, dynamic> json) =>
