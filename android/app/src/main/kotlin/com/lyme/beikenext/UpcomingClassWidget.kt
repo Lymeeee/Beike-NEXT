@@ -278,14 +278,14 @@ class UpcomingClassWidget : AppWidgetProvider() {
                         if (isWeekend) "周末愉快～" else "今日无课")
                     views.setInt(R.id.location_text, "setVisibility", 0x00000008)
                     views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
+                    if (lastUpdateText != null) {
+                        views.setInt(R.id.update_text, "setVisibility", 0x00000000)
+                        views.setTextViewText(R.id.update_text, lastUpdateText)
+                    }
                 } else {
                     renderClassInfo(calendar, allPeriods, todayClasses, views)
                 }
 
-                if (lastUpdateText != null) {
-                    views.setInt(R.id.update_text, "setVisibility", 0x00000000)
-                    views.setTextViewText(R.id.update_text, lastUpdateText)
-                }
                 attachClickIntent(context, views)
 
             } catch (e: Exception) {

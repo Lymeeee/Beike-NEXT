@@ -414,6 +414,7 @@ class _ExamPageState extends State<ExamPage> {
   Widget _buildHeaderCell(String text, double width, {bool isNumeric = false}) {
     return Container(
       width: width,
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Text(
         text,
         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -427,6 +428,7 @@ class _ExamPageState extends State<ExamPage> {
       {bool isNumeric = false}) {
     return Container(
       width: width,
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Align(
         alignment: Alignment.centerLeft,
         child: child,

@@ -803,18 +803,15 @@ class _CurriculumPageState extends State<CurriculumPage>
           final mergedData = _getMergedData(_curriculumData!);
           final weekDates = mergedData.getWeekdayDaysOf(_currentWeek);
 
-          return SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: CurriculumTable(
-              curriculumData: mergedData,
-              availableWidth: constraints.maxWidth,
-              availableHeight: constraints.maxHeight,
-              settings: settings,
-              weekDates: weekDates,
-              currentWeek: _currentWeek,
-              onTripleTapEmptyCell: _onTripleTapEmptyCell,
-              onTapCustomCourse: _onTapCustomCourse,
-            ),
+          return CurriculumTable(
+            curriculumData: mergedData,
+            availableWidth: constraints.maxWidth,
+            availableHeight: constraints.maxHeight,
+            settings: settings,
+            weekDates: weekDates,
+            currentWeek: _currentWeek,
+            onTripleTapEmptyCell: _onTripleTapEmptyCell,
+            onTapCustomCourse: _onTapCustomCourse,
           );
         } catch (e) {
           return Center(

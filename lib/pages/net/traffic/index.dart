@@ -20,7 +20,6 @@ class NetTrafficPage extends StatefulWidget {
 
 class _NetTrafficPageState extends State<NetTrafficPage>
     with PageStateMixin, LoadingStateMixin {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   List<NetOnlineSession>? _onlineSessions;
   final ValueNotifier<List<NetOnlineSession>> _onlineSessionsNotifier =
       ValueNotifier<List<NetOnlineSession>>([]);
@@ -184,6 +183,19 @@ class _NetTrafficPageState extends State<NetTrafficPage>
     }
   }
 
+  void _showDialDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        content: SizedBox(
+          width: 420,
+          child: NetDialDrawer(),
+        ),
+      ),
+    );
+  }
+
   void _clearRealtimeTrafficState() {
     _trackedSessionById.clear();
     _sessionTrafficActiveById.clear();
@@ -268,18 +280,7 @@ class _NetTrafficPageState extends State<NetTrafficPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      appBar: PageAppBar(
-        title: '校园网流量查询',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.speed),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-            tooltip: '网络拨测',
-          ),
-        ],
-      ),
-      endDrawer: const Drawer(child: NetDialDrawer()),
+      appBar: const PageAppBar(title: '校园网流量查询'),
       body: SyncPowered(childBuilder: (context) => _buildBody(context)),
     );
   }
@@ -355,6 +356,15 @@ class _NetTrafficPageState extends State<NetTrafficPage>
                     isLoading: _isLoading,
                   ),
                 ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    onPressed: _showDialDialog,
+                    icon: const Icon(Icons.speed, size: 18),
+                    label: const Text('网络拨测'),
+                  ),
+                ),
               ],
             ),
           ),
