@@ -574,7 +574,7 @@ class _GradePageState extends State<GradePage> {
       width: width,
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Align(
-        alignment: isNumeric ? Alignment.center : Alignment.centerLeft,
+        alignment: Alignment.center,
         child: child,
       ),
     );
