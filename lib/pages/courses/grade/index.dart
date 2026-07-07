@@ -394,45 +394,23 @@ class _GradePageState extends State<GradePage> {
           (sum, col) => sum + (col['flex'] as int),
         );
 
-        final needsHorizontalScroll = availableWidth < totalMinWidth;
-
-        List<double> columnWidths;
-        double tableWidth;
-
-        if (needsHorizontalScroll) {
-          columnWidths = columnConfig
-              .map((col) => col['minWidth'] as double)
-              .toList();
-          tableWidth = totalMinWidth;
-        } else {
-          final extraWidth = availableWidth - totalMinWidth;
-          if (totalFlex > 0) {
-            columnWidths = columnConfig.map((col) {
-              final minWidth = col['minWidth'] as double;
-              final flex = col['flex'] as int;
-              if (flex == 0) return minWidth;
-              return minWidth + extraWidth * (flex / totalFlex);
-            }).toList();
-          } else {
-            columnWidths = columnConfig
-                .map((col) => col['minWidth'] as double)
-                .toList();
-          }
-          tableWidth = availableWidth;
-        }
+        final extraWidth = availableWidth - totalMinWidth;
+        final columnWidths = columnConfig.map((col) {
+          final minWidth = col['minWidth'] as double;
+          final flex = col['flex'] as int;
+          if (flex == 0) return minWidth;
+          return minWidth + extraWidth * (flex / totalFlex);
+        }).toList();
 
         final dividerColor = Theme.of(context)
             .colorScheme.outlineVariant.withValues(alpha: 0.4);
 
         return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+          scrollDirection: Axis.vertical,
           physics: const AlwaysScrollableScrollPhysics(),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: SizedBox(
-              width: tableWidth,
-              child: Padding(
+          child: SizedBox(
+            width: availableWidth,
+            child: Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Column(
                   children: [
@@ -510,8 +488,8 @@ class _GradePageState extends State<GradePage> {
                 ),
               ),
             ),
-          ),
-        );
+          )
+        ;
       },
       ),
     );

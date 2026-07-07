@@ -300,39 +300,23 @@ class _ExamPageState extends State<ExamPage> {
           (sum, col) => sum + (col['flex'] as int),
         );
 
-        final needsHorizontalScroll = availableWidth < totalMinWidth;
-
-        List<double> columnWidths;
-        double tableWidth;
-
-        if (needsHorizontalScroll) {
-          columnWidths = columnConfig
-              .map((col) => col['minWidth'] as double)
-              .toList();
-          tableWidth = totalMinWidth;
-        } else {
-          final extraWidth = availableWidth - totalMinWidth;
-          columnWidths = columnConfig.map((col) {
-            final minWidth = col['minWidth'] as double;
-            final flex = col['flex'] as int;
-            final extraForThisColumn = extraWidth * (flex / totalFlex);
-            return minWidth + extraForThisColumn;
-          }).toList();
-          tableWidth = availableWidth;
-        }
+        final extraWidth = availableWidth - totalMinWidth;
+        final columnWidths = columnConfig.map((col) {
+          final minWidth = col['minWidth'] as double;
+          final flex = col['flex'] as int;
+          final extraForThisColumn = extraWidth * (flex / totalFlex);
+          return minWidth + extraForThisColumn;
+        }).toList();
 
         final dividerColor = Theme.of(context)
             .colorScheme.outlineVariant.withValues(alpha: 0.4);
 
         return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+          scrollDirection: Axis.vertical,
           physics: const AlwaysScrollableScrollPhysics(),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: SizedBox(
-              width: tableWidth,
-              child: Padding(
+          child: SizedBox(
+            width: availableWidth,
+            child: Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Column(
                   children: [
@@ -395,8 +379,8 @@ class _ExamPageState extends State<ExamPage> {
                 ),
               ),
             ),
-          ),
-        );
+          )
+        ;
       },
       ),
     );

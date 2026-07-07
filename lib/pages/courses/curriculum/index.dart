@@ -102,7 +102,12 @@ class _CurriculumPageState extends State<CurriculumPage>
       "curriculum",
       CurriculumSettings.fromJson,
     );
-    return cached ?? CurriculumSettings.defaultSettings;
+    return CurriculumSettings(
+      weekendMode: WeekendDisplayMode.auto,
+      tableSize: TableSize.small,
+      animationMode: AnimationMode.slide,
+      activated: cached?.activated ?? true,
+    );
   }
 
   void saveSettings(CurriculumSettings settings) {
@@ -110,19 +115,6 @@ class _CurriculumPageState extends State<CurriculumPage>
       "curriculum",
       settings,
     );
-  }
-
-  bool get isActivated => getSettings().activated;
-
-  void setActivated(bool activated) {
-    final settings = getSettings();
-    final newSettings = CurriculumSettings(
-      weekendMode: settings.weekendMode,
-      tableSize: settings.tableSize,
-      animationMode: settings.animationMode,
-      activated: activated,
-    );
-    saveSettings(newSettings);
   }
 
   void _onServiceStatusChanged() {
@@ -208,8 +200,6 @@ class _CurriculumPageState extends State<CurriculumPage>
 
       _autoDisableHolidayMode();
 
-      setActivated(true);
-
       if (mounted) {
         _customCourses = _readCustomCourses(integratedData.currentTerm);
         setState(() {
@@ -251,19 +241,26 @@ class _CurriculumPageState extends State<CurriculumPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PageAppBar(
-        title: '课程表',
+        title: '课表',
         actions: [
-          Builder(
-            builder: (context) => IconButton(
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
-              icon: const Icon(Icons.settings),
-              tooltip: '课程表设置',
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilledButton.tonalIcon(
+              onPressed: _showSwitchTermDialog,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('刷新课表'),
+              style: FilledButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
         ],
       ),
       body: SyncPowered(childBuilder: (context) => _buildBody()),
-      endDrawer: _buildSettingsDrawer(),
     );
   }
 
@@ -298,22 +295,16 @@ class _CurriculumPageState extends State<CurriculumPage>
 
     if (cachedData != null) {
       final data = cachedData;
-      // Check activated status from settings
-      if (isActivated) {
-        if (mounted && _curriculumData != data) {
-          _customCourses = _readCustomCourses(data.currentTerm);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            setState(() {
-              _curriculumData = data;
-              _gotoCurrentDateWeek();
-            });
+      if (mounted && _curriculumData != data) {
+        _customCourses = _readCustomCourses(data.currentTerm);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          setState(() {
+            _curriculumData = data;
+            _gotoCurrentDateWeek();
           });
-        }
-        return _buildCurriculumView();
-      } else {
-        // not activated
-        return _buildSelectionView(cachedData);
+        });
       }
+      return _buildCurriculumView();
     } else {
       if (!_serviceProvider.coursesService.isOnline) {
         return Center(
@@ -420,8 +411,6 @@ class _CurriculumPageState extends State<CurriculumPage>
 
     if (cachedData != null) {
       final data = cachedData;
-
-      setActivated(true);
 
       if (mounted) {
         _customCourses = _readCustomCourses(data.currentTerm);
@@ -838,219 +827,47 @@ class _CurriculumPageState extends State<CurriculumPage>
     );
   }
 
-  Widget _buildSettingsDrawer() {
-    return Drawer(
-      child: Column(
-        children: [
-          DrawerHeader(
-            child: const Row(
-              children: [
-                Icon(Icons.settings, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  '课程表设置',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          if (_curriculumData != null) ...[
-            _buildCurriculumInfo(),
-            const Divider(),
-          ],
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              children: [
-                _buildWeekendDisplaySetting(),
-                const SizedBox(height: 8),
-                _buildTableSizeSetting(),
-                const SizedBox(height: 8),
-                _buildAnimationModeSetting(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurriculumInfo() {
+  void _showSwitchTermDialog() {
     final cachedData = _serviceProvider.storeService
         .getConfig<CurriculumIntegratedData>(
           "curriculum_data",
           CurriculumIntegratedData.fromJson,
         );
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.school, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                '${_curriculumData!.currentTerm.year}学年 第${_curriculumData!.currentTerm.season}学期',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (cachedData != null)
-            Text(
-              '缓存时间：${formatCacheTime(cachedData)}',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.tonalIcon(
-              onPressed: _deactivateCurrentData,
-              icon: const Icon(Icons.cached),
-              label: const Text('切换学期或更新'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deactivateCurrentData() {
-    if (_curriculumData != null) {
-      // Set activated to false in settings
-      setActivated(false);
-
-      if (mounted) {
-        setState(() {
-          _errorMessage = null;
-        });
-      }
-
-      Navigator.of(context).pop();
-    }
-  }
-
-  Widget _buildWeekendDisplaySetting() {
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '显示周末',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: 100,
-              child: DropdownButtonFormField<WeekendDisplayMode>(
-                initialValue: getSettings().weekendMode,
-                items: WeekendDisplayMode.values.map((mode) {
-                  return DropdownMenuItem(
-                    value: mode,
-                    child: Text(mode.displayName),
-                  );
-                }).toList(),
-                onChanged: (WeekendDisplayMode? newMode) {
-                  if (newMode != null) {
-                    final currentSettings = getSettings();
-                    saveSettings(currentSettings..weekendMode = newMode);
-                    setState(() {});
-                  }
-                },
-              ),
-            ),
-          ],
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('切换学期或更新'),
+        titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
         ),
-      ),
-    );
-  }
-
-  Widget _buildTableSizeSetting() {
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '表格尺寸',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ChooseLatestCard(
+                  isLoggedIn: _serviceProvider.coursesService.isOnline,
+                  getTerms: () => _serviceProvider.coursesService.getTerms(),
+                  onTermSelected: (termInfo) {
+                    Navigator.of(context).pop();
+                    _loadCurriculumForTerm(termInfo);
+                  },
+                  isLoading: _isLoading,
+                ),
+                if (cachedData != null)
+                  ChooseCacheCard(
+                    cachedData: cachedData,
+                    onSubmit: () {
+                      Navigator.of(context).pop();
+                      _activateAndViewCachedData();
+                    },
+                    isLoading: _isLoading,
+                  ),
+              ],
             ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: 100,
-              child: DropdownButtonFormField<TableSize>(
-                initialValue: getSettings().tableSize,
-                items: TableSize.values.map((size) {
-                  return DropdownMenuItem(
-                    value: size,
-                    child: Text(size.displayName),
-                  );
-                }).toList(),
-                onChanged: (TableSize? newSize) {
-                  if (newSize != null) {
-                    final currentSettings = getSettings();
-                    saveSettings(currentSettings..tableSize = newSize);
-                    setState(() {});
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnimationModeSetting() {
-    return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '动画效果',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 16),
-            SizedBox(
-              width: 100,
-              child: DropdownButtonFormField<AnimationMode>(
-                initialValue: getSettings().animationMode,
-                items: AnimationMode.values.map((mode) {
-                  return DropdownMenuItem(
-                    value: mode,
-                    child: Text(mode.displayName),
-                  );
-                }).toList(),
-                onChanged: (AnimationMode? newMode) {
-                  if (newMode != null) {
-                    final currentSettings = getSettings();
-                    saveSettings(currentSettings..animationMode = newMode);
-                    setState(() {});
-                  }
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

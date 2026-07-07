@@ -119,12 +119,6 @@ class CurriculumTable extends StatelessWidget {
     var displayDays = settings.calculateDisplayDays(
       weekClasses.map((c) => c.day).toSet().toList(),
     );
-    // Semester 3 without calendar: limit to weekdays only
-    if (curriculumData.currentTerm.season >= 3 &&
-        (curriculumData.calendarDays == null ||
-            curriculumData.calendarDays!.isEmpty)) {
-      displayDays = displayDays.clamp(0, 5);
-    }
     final dayColumnWidth = (availableWidth - 2) / (displayDays + 1);
     const headerHeight = 66.0; // 50 + 2×2 margin + 12 safety
     const rowVerticalMargin = 2.0; // 1+1 top+bottom per body cell
