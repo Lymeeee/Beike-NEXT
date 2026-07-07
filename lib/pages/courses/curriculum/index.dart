@@ -837,10 +837,11 @@ class _CurriculumPageState extends State<CurriculumPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('切换学期或更新'),
+        title: const Text('刷新课表'),
         titleTextStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.bold,
         ),
+        contentPadding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
         content: SizedBox(
           width: 400,
           child: SingleChildScrollView(
