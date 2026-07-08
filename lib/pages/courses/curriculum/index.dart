@@ -6,6 +6,7 @@ import '/types/preferences.dart';
 import '/utils/app_bar.dart';
 import '/services/widget_updater.dart';
 import '/utils/sync_embeded.dart';
+import '/utils/haptic.dart';
 import 'common.dart';
 import 'table.dart';
 import 'custom_course_dialog.dart';
@@ -224,14 +225,14 @@ class _CurriculumPageState extends State<CurriculumPage>
       'app_settings',
       AppSettings.fromJson,
     );
-    if (appSettings?.holidayMode == true) {
+    if (appSettings?.holidayMode == true || appSettings?.examMode == true) {
       _serviceProvider.storeService.putPref<AppSettings>(
         'app_settings',
         AppSettings(
           themeMode: appSettings!.themeMode,
           accentColorValue: appSettings.accentColorValue,
-          classReminderEnabled: appSettings.classReminderEnabled,
           holidayMode: false,
+          examMode: false,
         ),
       );
     }
@@ -246,7 +247,10 @@ class _CurriculumPageState extends State<CurriculumPage>
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.tonalIcon(
-              onPressed: _showSwitchTermDialog,
+              onPressed: () {
+                Haptics.light();
+                _showSwitchTermDialog();
+              },
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('刷新课表'),
               style: FilledButton.styleFrom(
@@ -279,7 +283,10 @@ class _CurriculumPageState extends State<CurriculumPage>
             ),
             const SizedBox(height: 16),
             FilledButton.tonal(
-              onPressed: _refreshCurriculumData,
+              onPressed: () {
+                Haptics.light();
+                _refreshCurriculumData();
+              },
               child: const Text('重试'),
             ),
           ],
@@ -316,7 +323,10 @@ class _CurriculumPageState extends State<CurriculumPage>
                   padding: EdgeInsets.only(right: 8.0),
                   child: Icon(Icons.login, size: 64, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
-                onPressed: () => context.router.pushPath('/courses/account'),
+                onPressed: () {
+                  Haptics.selection();
+                  context.router.pushPath('/courses/account');
+                },
               ),
               const SizedBox(height: 16),
               Text(
@@ -451,7 +461,10 @@ class _CurriculumPageState extends State<CurriculumPage>
               ),
             const SizedBox(height: 16),
             FilledButton.tonal(
-              onPressed: _clearCacheAndSelectTerm,
+              onPressed: () {
+                Haptics.light();
+                _clearCacheAndSelectTerm();
+              },
               child: const Text('重新选择学期'),
             ),
           ],
@@ -471,6 +484,7 @@ class _CurriculumPageState extends State<CurriculumPage>
               child: GestureDetector(
                 onPanEnd: (details) {
                   if (details.velocity.pixelsPerSecond.dx.abs() > 400) {
+                    Haptics.medium();
                     if (details.velocity.pixelsPerSecond.dx > 0) {
                       // Slide from left
                       _gotoWeekSafe(_currentWeek - 1);
@@ -568,12 +582,18 @@ class _CurriculumPageState extends State<CurriculumPage>
     return Row(
       children: [
         IconButton(
-          onPressed: () => _gotoWeekSafe(_currentWeek - 1),
+          onPressed: () {
+            Haptics.selection();
+            _gotoWeekSafe(_currentWeek - 1);
+          },
           icon: const Icon(Icons.chevron_left),
         ),
         Expanded(
           child: GestureDetector(
-            onTap: _showWeekJumper,
+            onTap: () {
+              Haptics.selection();
+              _showWeekJumper();
+            },
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: Container(
@@ -599,7 +619,10 @@ class _CurriculumPageState extends State<CurriculumPage>
               ? '已经到最大周次了~'
               : '',
           child: IconButton(
-            onPressed: () => _gotoWeekSafe(_currentWeek + 1),
+            onPressed: () {
+              Haptics.selection();
+              _gotoWeekSafe(_currentWeek + 1);
+            },
             icon: const Icon(Icons.chevron_right),
           ),
         ),
@@ -659,6 +682,7 @@ class _CurriculumPageState extends State<CurriculumPage>
                     ),
                     selected: false,
                     onSelected: (selected) {
+                      Haptics.selection();
                       Navigator.of(context).pop();
                       _gotoWeekSafe(week);
                     },
@@ -776,7 +800,10 @@ class _CurriculumPageState extends State<CurriculumPage>
             ),
             const SizedBox(height: 16),
             FilledButton.tonal(
-              onPressed: _refreshCurriculumData,
+              onPressed: () {
+                Haptics.light();
+                _refreshCurriculumData();
+              },
               child: const Text('重新加载'),
             ),
           ],
@@ -816,7 +843,10 @@ class _CurriculumPageState extends State<CurriculumPage>
                 ),
                 const SizedBox(height: 16),
                 FilledButton.tonal(
-                  onPressed: _refreshCurriculumData,
+                  onPressed: () {
+                    Haptics.light();
+                    _refreshCurriculumData();
+                  },
                   child: const Text('重试'),
                 ),
               ],

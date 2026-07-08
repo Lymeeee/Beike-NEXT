@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
 import '/types/courses.dart';
 import '/types/base.dart';
+import '/utils/haptic.dart';
 
 String formatCacheTime(BaseDataClass cachedData) {
   final time = cachedData.$lastUpdateTime!;
@@ -121,7 +122,10 @@ class ChooseCacheCard extends StatelessWidget {
               height: 36,
               width: double.infinity,
               child: FilledButton.tonalIcon(
-                onPressed: isLoading ? null : onSubmit,
+                onPressed: isLoading ? null : () {
+                Haptics.medium();
+                onSubmit();
+              },
                 icon: isLoading
                     ? SizedBox(
                         width: 16,
@@ -270,8 +274,10 @@ class _ChooseLatestCardState extends State<ChooseLatestCard> {
                         color: Theme.of(context).colorScheme.onSecondaryContainer,
                         size: 24,
                       ),
-                      onPressed: () =>
-                          context.router.pushPath('/courses/account'),
+                      onPressed: () {
+                        Haptics.selection();
+                        context.router.pushPath('/courses/account');
+                      },
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -396,7 +402,10 @@ class _ChooseLatestCardState extends State<ChooseLatestCard> {
                     : (widget.isLoggedIn &&
                               _selectedTerm != null &&
                               widget.onTermSelected != null
-                          ? () => widget.onTermSelected!(_selectedTerm!)
+                          ? () {
+                              Haptics.medium();
+                              widget.onTermSelected!(_selectedTerm!);
+                            }
                           : null),
                 icon: widget.isLoading
                     ? SizedBox(

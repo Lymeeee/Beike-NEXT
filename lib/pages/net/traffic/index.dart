@@ -10,6 +10,7 @@ import '/utils/sync_embeded.dart';
 import 'dialog_device_show.dart';
 import 'bill.dart';
 import 'dial.dart';
+import '/utils/haptic.dart';
 
 class NetTrafficPage extends StatefulWidget {
   const NetTrafficPage({super.key});
@@ -316,7 +317,10 @@ class _NetTrafficPageState extends State<NetTrafficPage>
                             ),
                           ),
                           IconButton(
-                            onPressed: clearError,
+                            onPressed: () {
+                              Haptics.light();
+                              clearError();
+                            },
                             icon: Icon(
                               Icons.close,
                               color: theme.colorScheme.onErrorContainer,
@@ -360,7 +364,10 @@ class _NetTrafficPageState extends State<NetTrafficPage>
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.tonalIcon(
-                    onPressed: _showDialDialog,
+                    onPressed: () {
+                      Haptics.selection();
+                      _showDialDialog();
+                    },
                     icon: const Icon(Icons.speed, size: 18),
                     label: const Text('网络拨测'),
                   ),
@@ -399,7 +406,12 @@ class _NetTrafficPageState extends State<NetTrafficPage>
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _isLoadingLogin ? null : _showLoginDialog,
+              onPressed: _isLoadingLogin
+                  ? null
+                  : () {
+                      Haptics.medium();
+                      _showLoginDialog();
+                    },
               icon: _isLoadingLogin
                   ? const SizedBox(
                       width: 16,
@@ -497,13 +509,16 @@ class NetOnlineSessionSection extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
-            onPressed: () => showDialog(
-              context: context,
-              builder: (context) => NetOnlineDeviceShowDialog(
-                session: session,
-                sessionsListenable: sessionsListenable,
-              ),
-            ),
+            onPressed: () {
+              Haptics.selection();
+              showDialog(
+                context: context,
+                builder: (context) => NetOnlineDeviceShowDialog(
+                  session: session,
+                  sessionsListenable: sessionsListenable,
+                ),
+              );
+            },
             icon: const Icon(Icons.info_outline),
             tooltip: '详情',
           ),

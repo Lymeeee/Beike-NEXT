@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'services/provider.dart';
-import 'services/class_reminder_service.dart';
 import 'types/preferences.dart';
 import 'utils/meta_info.dart';
 import 'router.dart';
@@ -15,9 +14,6 @@ void main() async {
   await MetaInfo.instance.initialize();
   // Initialize service provider
   await ServiceProvider.instance.initializeServices();
-  // Initialize class reminder service
-  await ClassReminderService.instance.initialize();
-  // Run the GUI application
   runApp(const Main());
 }
 
@@ -93,7 +89,8 @@ class _MainState extends State<Main> {
     final appSettings = AppSettings(
       themeMode: _themeMode,
       accentColorValue: _accentColor?.toARGB32(),
-      classReminderEnabled: existing?.classReminderEnabled ?? false,
+      hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
+      examMode: existing?.examMode ?? false,
     );
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',
@@ -120,7 +117,11 @@ class _MainState extends State<Main> {
       // Cards
       cardTheme: CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: colorScheme.primary, width: 1),
+        ),
         clipBehavior: Clip.antiAlias,
       ),
       // Buttons

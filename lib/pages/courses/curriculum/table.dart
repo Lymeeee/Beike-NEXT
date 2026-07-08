@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
+import '/utils/haptic.dart';
 
 class _TimeIndicatorInfo {
   final int periodIndex;
@@ -67,7 +68,10 @@ class CurriculumTable extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop();
+            },
             child: const Text('确定'),
           ),
         ],
@@ -137,12 +141,13 @@ class CurriculumTable extends StatelessWidget {
       }
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: availableWidth,
+    return Container(
+      width: availableWidth,
+      decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        child: Table(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Table(
             columnWidths: {
               for (int i = 0; i <= displayDays; i++)
                 i: FixedColumnWidth(dayColumnWidth),
@@ -193,7 +198,6 @@ class CurriculumTable extends StatelessWidget {
                 ),
             ],
           ),
-        ),
     );
   }
 
@@ -386,7 +390,10 @@ class CurriculumTable extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showClassDetails(context, firstClass),
+        onTap: () {
+          Haptics.selection();
+          _showClassDetails(context, firstClass);
+        },
         splashColor: Theme.of(
           context,
         ).colorScheme.surface.withValues(alpha: 0.3),
@@ -591,6 +598,7 @@ class _TripleTapDetectorState extends State<_TripleTapDetector> {
     _tapCount++;
     if (_tapCount >= 3) {
       _tapCount = 0;
+      Haptics.heavy();
       widget.onTripleTap?.call();
     }
   }

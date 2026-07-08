@@ -179,14 +179,16 @@ class AppSettings extends BaseDataClass {
   ThemeMode themeMode;
   @JsonKey(name: 'accentColor')
   int? accentColorValue;
-  bool classReminderEnabled;
   bool holidayMode;
+  bool hapticFeedbackEnabled;
+  bool examMode;
 
   AppSettings({
     required this.themeMode,
     this.accentColorValue,
-    this.classReminderEnabled = false,
     this.holidayMode = false,
+    this.hapticFeedbackEnabled = true,
+    this.examMode = false,
   });
 
   Color? get accentColor =>
@@ -196,8 +198,9 @@ class AppSettings extends BaseDataClass {
   Map<String, dynamic> getEssentials() => {
     'themeMode': themeMode,
     'accentColor': accentColorValue,
-    'classReminderEnabled': classReminderEnabled,
     'holidayMode': holidayMode,
+    'hapticFeedbackEnabled': hapticFeedbackEnabled,
+    'examMode': examMode,
   };
 
   static final AppSettings defaultSettings = AppSettings(

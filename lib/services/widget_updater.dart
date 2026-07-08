@@ -34,4 +34,42 @@ class WidgetUpdater {
     };
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));
   }
+
+  void updateExams(List<ExamInfo> exams) {
+    final now = DateTime.now();
+    ExamInfo? ongoing;
+    ExamInfo? upcoming;
+    DateTime? upcomingStart;
+
+    for (final exam in exams) {
+      final start = exam.getStartTime();
+      final end = exam.getEndTime();
+      if (start == null || end == null) continue;
+      if (now.isAfter(start) && now.isBefore(end)) {
+        ongoing = exam;
+      } else if (start.isAfter(now) &&
+          (upcomingStart == null || start.isBefore(upcomingStart))) {
+        upcoming = exam;
+        upcomingStart = start;
+      }
+    }
+
+    final displayExam = ongoing ?? upcoming;
+    final payload = <String, dynamic>{
+      'hasData': true,
+      'examMode': true,
+    };
+
+    if (displayExam != null) {
+      final label = ongoing != null ? '考试进行中' : '即将考试';
+      payload['examLabel'] = label;
+      payload['examName'] = displayExam.courseName;
+      payload['examTime'] = displayExam.examTime;
+      payload['examDate'] = displayExam.examDateDisplay;
+      payload['examDay'] = displayExam.examDayName;
+      payload['examRoom'] = displayExam.examRoom;
+    }
+
+    _channel.invokeMethod('updateCurriculumData', json.encode(payload));
+  }
 }

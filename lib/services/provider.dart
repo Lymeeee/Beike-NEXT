@@ -11,7 +11,7 @@ import '/services/sync/base.dart';
 import '/services/sync/sync_service.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
-import '/services/class_reminder_service.dart';
+
 
 class ServiceProvider extends ChangeNotifier {
   final List<VoidCallback> _serviceListenerDisposers = [];
@@ -50,6 +50,9 @@ class ServiceProvider extends ChangeNotifier {
   BaseSyncService get syncService => _syncService;
 
   BaseStoreService get storeService => _storeService;
+
+  /// Notify listeners when app settings change (e.g. exam/holiday mode toggled).
+  void notifySettingsChanged() => notifyListeners();
 
   Future<void> initializeServices() async {
     await _storeService.initialize();
@@ -197,24 +200,21 @@ class ServiceProvider extends ChangeNotifier {
       customCourses: customCoursesData?.courses,
     );
 
-    // Auto-disable holiday mode
+    // Auto-disable holiday/exam mode when fresh curriculum loaded
     final appSettings = storeService.getPref<AppSettings>(
       'app_settings',
       AppSettings.fromJson,
     );
-    if (appSettings?.holidayMode == true) {
+    if (appSettings?.holidayMode == true || appSettings?.examMode == true) {
       storeService.putPref<AppSettings>(
         'app_settings',
         AppSettings(
           themeMode: appSettings!.themeMode,
           accentColorValue: appSettings.accentColorValue,
-          classReminderEnabled: appSettings.classReminderEnabled,
           holidayMode: false,
+          examMode: false,
         ),
       );
-      if (appSettings.classReminderEnabled) {
-        ClassReminderService.instance.start();
-      }
     }
 
     return integratedData;

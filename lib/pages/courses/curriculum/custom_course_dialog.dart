@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '/types/courses.dart';
+import '/utils/haptic.dart';
 
 class CustomCourseDialog extends StatefulWidget {
   final int day;
@@ -125,6 +126,7 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
                   const Spacer(),
                   TextButton(
                     onPressed: () {
+                      Haptics.light();
                       setDialogState(() {
                         if (allSelected) {
                           _weeks.clear();
@@ -151,6 +153,7 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
                       label: Text('$week'),
                       selected: selected,
                       onSelected: (val) {
+                        Haptics.selection();
                         setDialogState(() {
                           if (val) {
                             _weeks.add(week);
@@ -166,6 +169,7 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
               actions: [
                 TextButton(
                   onPressed: () {
+                    Haptics.light();
                     setState(() {});
                     Navigator.of(ctx).pop();
                   },
@@ -240,7 +244,10 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
             ),
             const SizedBox(height: 12),
             InkWell(
-              onTap: _showWeekPicker,
+              onTap: () {
+                Haptics.selection();
+                _showWeekPicker();
+              },
               borderRadius: BorderRadius.circular(8),
               child: InputDecorator(
                 decoration: const InputDecoration(
@@ -266,7 +273,10 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
       actions: [
         if (isEdit)
           TextButton.icon(
-            onPressed: _delete,
+            onPressed: () {
+              Haptics.heavy();
+              _delete();
+            },
             icon: const Icon(Icons.delete, size: 18),
             label: const Text('删除'),
             style: TextButton.styleFrom(
@@ -274,11 +284,17 @@ class _CustomCourseDialogState extends State<CustomCourseDialog> {
             ),
           ),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('取消'),
         ),
         FilledButton(
-          onPressed: _submit,
+          onPressed: () {
+            Haptics.medium();
+            _submit();
+          },
           child: Text(isEdit ? '保存' : '添加'),
         ),
       ],

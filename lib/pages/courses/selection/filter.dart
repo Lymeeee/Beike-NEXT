@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/utils/haptic.dart';
 
 class FilterBodyBuilder {
   static List<Widget> buildFilterersBody(
@@ -285,6 +286,7 @@ class _FilterSidebarState extends State<FilterSidebar> {
               ),
               TextButton.icon(
                 onPressed: () {
+                  Haptics.light();
                   setState(() {
                     _tempFilter.clear();
                   });
@@ -389,6 +391,7 @@ class _FilterDialogState extends State<FilterDialog> {
       actions: [
         TextButton(
           onPressed: () {
+            Haptics.light();
             setState(() {
               tempFilter.clear();
             });
@@ -399,6 +402,7 @@ class _FilterDialogState extends State<FilterDialog> {
         ),
         FilledButton(
           onPressed: () {
+            Haptics.medium();
             widget.onApply(tempFilter);
             Navigator.of(context).pop();
           },

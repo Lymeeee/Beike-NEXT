@@ -5,6 +5,7 @@ import '../../services/provider.dart';
 import '../../services/sync/convert.dart';
 import '../../types/sync.dart';
 import '../../utils/app_bar.dart';
+import '../../utils/haptic.dart';
 import '../../utils/meta_info.dart';
 
 class UpdatePage extends StatefulWidget {
@@ -131,7 +132,7 @@ class _UpdatePageState extends State<UpdatePage> {
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.refresh, size: 20),
-              onPressed: _isLoading ? null : _checkUpdate,
+              onPressed: _isLoading ? null : () { Haptics.light(); _checkUpdate(); },
             ),
             const SizedBox(width: 2),
             _buildStatusChip(theme),
@@ -404,6 +405,7 @@ class _DownloadSourceTile extends StatelessWidget {
             icon: const Icon(Icons.copy, size: 18),
             tooltip: '复制链接',
             onPressed: () {
+              Haptics.light();
               Clipboard.setData(ClipboardData(text: url));
               ScaffoldMessenger.of(
                 context,
@@ -415,6 +417,7 @@ class _DownloadSourceTile extends StatelessWidget {
             color: theme.colorScheme.primary,
             tooltip: '打开链接',
             onPressed: () async {
+              Haptics.light();
               final uri = Uri.parse(url);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);

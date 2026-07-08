@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/types/net.dart';
+import '/utils/haptic.dart';
 
 class NetDeviceShowDialog extends StatefulWidget {
   final MacDevice device;
@@ -130,6 +131,7 @@ class _NetDeviceShowDialogState extends State<NetDeviceShowDialog> {
               icon: const Icon(Icons.copy),
               iconSize: 16,
               onPressed: () async {
+                Haptics.light();
                 final rawMac = device.mac.toUpperCase();
                 await Clipboard.setData(ClipboardData(text: rawMac));
                 if (context.mounted) {
@@ -158,7 +160,15 @@ class _NetDeviceShowDialogState extends State<NetDeviceShowDialog> {
                 ? IconButton(
                     icon: Icon(_isEditing ? Icons.check : Icons.edit),
                     iconSize: 16,
-                    onPressed: _isEditing ? _submitRename : _toggleEditingName,
+                    onPressed: _isEditing
+                        ? () {
+                            Haptics.selection();
+                            _submitRename();
+                          }
+                        : () {
+                            Haptics.selection();
+                            _toggleEditingName();
+                          },
                     tooltip: _isEditing ? '保存' : '编辑',
                     style: IconButton.styleFrom(minimumSize: Size(32, 32)),
                   )
@@ -187,7 +197,10 @@ class _NetDeviceShowDialogState extends State<NetDeviceShowDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('关闭'),
         ),
       ],

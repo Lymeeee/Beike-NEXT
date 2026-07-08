@@ -864,9 +864,26 @@ class ExamInfo extends BaseDataClass {
 
   DateTime? getStartTime() {
     try {
-      final utcDate = examDate.toLocal(); // Server returns UTC date
+      final utcDate = examDate.toLocal();
       final startTimeStr = examTime.split('-')[0];
       final timeParts = startTimeStr.split(':');
+      if (timeParts.length != 2) return null;
+      final hour = int.tryParse(timeParts[0]);
+      final minute = int.tryParse(timeParts[1]);
+      if (hour == null || minute == null) return null;
+      return DateTime(utcDate.year, utcDate.month, utcDate.day, hour, minute);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  DateTime? getEndTime() {
+    try {
+      final utcDate = examDate.toLocal();
+      final parts = examTime.split('-');
+      if (parts.length < 2) return null;
+      final endTimeStr = parts[1];
+      final timeParts = endTimeStr.split(':');
       if (timeParts.length != 2) return null;
       final hour = int.tryParse(timeParts[0]);
       final minute = int.tryParse(timeParts[1]);

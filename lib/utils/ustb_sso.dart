@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:ustb_sso/ustb_sso.dart';
+import '/utils/haptic.dart';
 
 enum UstbSsoState {
   none,
@@ -574,6 +575,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
         if (_tabController.index == 0 && _qrErrorMessage != null)
           FilledButton.tonalIcon(
             onPressed: () async {
+              Haptics.light();
               if (_tabController.index == 0) {
                 setState(() {
                   _qrErrorMessage = null;
@@ -697,6 +699,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 20),
                       onPressed: () {
+                        Haptics.light();
                         _phoneController.clear();
                         widget.onUpdateSmsPhone?.call("");
                       },
@@ -724,7 +727,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
           if (!canInputCode) ...[
             // Full-width send SMS button when no code input needed
             FilledButton(
-              onPressed: canSendSms ? _sendSmsCode : null,
+              onPressed: canSendSms ? () { Haptics.medium(); _sendSmsCode(); } : null,
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -767,7 +770,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
                 prefixIcon: const Icon(Icons.numbers),
                 suffixIcon: canResendSms
                     ? TextButton(
-                        onPressed: _sendSmsCode,
+                        onPressed: () { Haptics.light(); _sendSmsCode(); },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           minimumSize: Size.zero,
@@ -816,7 +819,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
           // Login button
           if (canInputCode)
             FilledButton(
-              onPressed: canLogin ? _submitSmsCode : null,
+              onPressed: canLogin ? () { Haptics.medium(); _submitSmsCode(); } : null,
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

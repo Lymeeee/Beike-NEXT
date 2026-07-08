@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
 import '/utils/page_mixins.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 import '/services/empty_classroom/service.dart';
 import '/types/empty_classroom.dart';
 
@@ -196,7 +197,7 @@ class _EmptyClassroomPageState extends State<EmptyClassroomPage>
                   showCheckmark: false,
                   onSelected: _service.isLoading
                       ? null
-                      : (_) => _service.selectTimeFilter(id),
+                      : (_) { Haptics.selection(); _service.selectTimeFilter(id); },
                   avatar: Icon(
                     _timeFilterIcons[id],
                     size: 16,
@@ -271,7 +272,7 @@ class _EmptyClassroomPageState extends State<EmptyClassroomPage>
             Text('加载失败', style: TextStyle(color: theme.colorScheme.error)),
             const SizedBox(height: 8),
             FilledButton.tonal(
-              onPressed: () => _service.refresh(),
+              onPressed: () { Haptics.light(); _service.refresh(); },
               child: const Text('重试'),
             ),
           ],
@@ -543,7 +544,7 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return InkWell(
-      onTap: () => onTap?.call(context),
+      onTap: () { Haptics.selection(); onTap?.call(context); },
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

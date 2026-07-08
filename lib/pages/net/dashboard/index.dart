@@ -11,6 +11,7 @@ import 'dialog_device_show.dart';
 import 'dialog_device_add.dart';
 import 'dialog_plan_show.dart';
 import 'dialog_change_max_consume.dart';
+import '/utils/haptic.dart';
 
 class NetDashboardPage extends StatefulWidget {
   const NetDashboardPage({super.key});
@@ -222,11 +223,17 @@ class _NetDashboardPageState extends State<NetDashboardPage>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () {
+                Haptics.light();
+                Navigator.of(context).pop(false);
+              },
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () {
+                Haptics.medium();
+                Navigator.of(context).pop(true);
+              },
               child: const Text('确认'),
             ),
           ],
@@ -273,11 +280,17 @@ class _NetDashboardPageState extends State<NetDashboardPage>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop(false);
+            },
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () {
+              Haptics.medium();
+              Navigator.of(context).pop(true);
+            },
             child: const Text('确认'),
           ),
         ],
@@ -389,7 +402,10 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                             ),
                           ),
                           IconButton(
-                            onPressed: clearError,
+                            onPressed: () {
+                              Haptics.light();
+                              clearError();
+                            },
                             icon: Icon(
                               Icons.close,
                               color: theme.colorScheme.onErrorContainer,
@@ -447,7 +463,12 @@ class _NetDashboardPageState extends State<NetDashboardPage>
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _isLoadingLogin ? null : () => _showLoginDialog(),
+              onPressed: _isLoadingLogin
+                  ? null
+                  : () {
+                      Haptics.medium();
+                      _showLoginDialog();
+                    },
               icon: _isLoadingLogin
                   ? const SizedBox(
                       width: 16,
@@ -485,7 +506,12 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                 Text('校园网账户', style: theme.textTheme.titleLarge),
                 const Spacer(),
                 IconButton(
-                  onPressed: _isRefreshingUser ? null : _refreshUserInfo,
+                  onPressed: _isRefreshingUser
+                      ? null
+                      : () {
+                          Haptics.selection();
+                          _refreshUserInfo();
+                        },
                   icon: _isRefreshingUser
                       ? const SizedBox(
                           width: 24,
@@ -559,7 +585,12 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                             ),
                             padding: const EdgeInsets.all(12),
                           ),
-                          onPressed: _isLoggingOut ? null : _showLogoutDialog,
+                          onPressed: _isLoggingOut
+                              ? null
+                              : () {
+                                  Haptics.heavy();
+                                  _showLogoutDialog();
+                                },
                         ),
                       ],
                     ),
@@ -726,7 +757,10 @@ class _NetDashboardPageState extends State<NetDashboardPage>
       return Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onPressed,
+          onTap: () {
+            Haptics.selection();
+            onPressed();
+          },
           borderRadius: BorderRadius.circular(8),
           child: container,
         ),
@@ -924,7 +958,12 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                 Text('已绑定设备', style: theme.textTheme.titleLarge),
                 const Spacer(),
                 IconButton(
-                  onPressed: _isRefreshingDevices ? null : _refreshDevices,
+                  onPressed: _isRefreshingDevices
+                      ? null
+                      : () {
+                          Haptics.selection();
+                          _refreshDevices();
+                        },
                   icon: _isRefreshingDevices
                       ? const SizedBox(
                           width: 24,
@@ -968,7 +1007,10 @@ class _NetDashboardPageState extends State<NetDashboardPage>
             const SizedBox(height: 16),
             if (_macDevices != null && _macDevices!.length < 5)
               FilledButton.icon(
-                onPressed: _showAddDeviceDialog,
+                onPressed: () {
+                  Haptics.medium();
+                  _showAddDeviceDialog();
+                },
                 icon: const Icon(Icons.add),
                 label: const Text('手动添加新设备'),
               ),
@@ -1043,24 +1085,27 @@ class _NetDashboardPageState extends State<NetDashboardPage>
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
-            onPressed: () => showDialog(
-              context: context,
-              builder: (context) => NetDeviceShowDialog(
-                device: device,
-                onRename: (newName) async {
-                  try {
-                    await serviceProvider.netService.renameMac(
-                      device.mac,
-                      terminalName: newName,
-                    );
-                  } catch (_) {
-                    return false;
-                  }
-                  await _refreshDevices();
-                  return true;
-                },
-              ),
-            ),
+            onPressed: () {
+              Haptics.selection();
+              showDialog(
+                context: context,
+                builder: (context) => NetDeviceShowDialog(
+                  device: device,
+                  onRename: (newName) async {
+                    try {
+                      await serviceProvider.netService.renameMac(
+                        device.mac,
+                        terminalName: newName,
+                      );
+                    } catch (_) {
+                      return false;
+                    }
+                    await _refreshDevices();
+                    return true;
+                  },
+                ),
+              );
+            },
             icon: const Icon(Icons.info_outline),
             tooltip: '详情',
           ),
@@ -1070,7 +1115,10 @@ class _NetDashboardPageState extends State<NetDashboardPage>
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
-            onPressed: () => _handleUnbindMac(device),
+            onPressed: () {
+              Haptics.heavy();
+              _handleUnbindMac(device);
+            },
             icon: const Icon(Icons.delete_outline),
             tooltip: '解绑设备',
           ),

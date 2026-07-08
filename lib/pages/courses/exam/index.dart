@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 
 class ExamPage extends StatefulWidget {
   const ExamPage({super.key});
@@ -112,7 +113,10 @@ class _ExamPageState extends State<ExamPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop();
+            },
             child: const Text('关闭'),
           ),
         ],
@@ -185,7 +189,10 @@ class _ExamPageState extends State<ExamPage> {
             ),
             const SizedBox(height: 16),
             FilledButton.tonal(
-                onPressed: _refreshExams, child: const Text('重试')),
+                onPressed: () {
+                  Haptics.light();
+                  _refreshExams();
+                }, child: const Text('重试')),
           ],
         ),
       );
@@ -241,7 +248,10 @@ class _ExamPageState extends State<ExamPage> {
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          onTap: !_isLoading ? _refreshExams : null,
+          onTap: !_isLoading ? () {
+            Haptics.light();
+            _refreshExams();
+          } : null,
           child: _isLoading
               ? const SizedBox(
                   width: 18,
@@ -352,7 +362,10 @@ class _ExamPageState extends State<ExamPage> {
                             Divider(
                                 height: 1, color: dividerColor),
                           InkWell(
-                            onTap: () => _showExamDetail(exam),
+                            onTap: () {
+                              Haptics.light();
+                              _showExamDetail(exam);
+                            },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 12),

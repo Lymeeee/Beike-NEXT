@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/utils/haptic.dart';
 
 class NetAddDeviceDialog extends StatefulWidget {
   const NetAddDeviceDialog({super.key});
@@ -60,11 +61,15 @@ class _NetAddDeviceDialogState extends State<NetAddDeviceDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('取消'),
         ),
         FilledButton(
           onPressed: () {
+            Haptics.medium();
             final mac = macController.text.trim();
             final name = nameController.text.trim();
             if (mac.isNotEmpty) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/utils/app_bar.dart';
 import '/utils/webvpn.dart';
+import '/utils/haptic.dart';
 
 class WebVpnPage extends StatefulWidget {
   const WebVpnPage({super.key});
@@ -68,6 +69,10 @@ class _WebVpnPageState extends State<WebVpnPage> {
           children: [
             const SizedBox(height: 16),
             Card.filled(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -83,12 +88,15 @@ class _WebVpnPageState extends State<WebVpnPage> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _rawController,
+                      maxLines: null,
                       decoration: InputDecoration(
                         hintText: "输入后按回车转换（别忘了前面的https://呦）",
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.outline,
-                          ),
+                        hintMaxLines: 2,
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
                         ),
                         errorText: _rawError,
                       ),
@@ -99,6 +107,7 @@ class _WebVpnPageState extends State<WebVpnPage> {
                       alignment: Alignment.centerRight,
                       child: FilledButton.tonalIcon(
                         onPressed: () {
+                          Haptics.light();
                           if (_rawController.text.isNotEmpty) {
                             Clipboard.setData(
                               ClipboardData(text: _rawController.text),
@@ -123,6 +132,10 @@ class _WebVpnPageState extends State<WebVpnPage> {
             ),
             const SizedBox(height: 16),
             Card.filled(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -139,12 +152,15 @@ class _WebVpnPageState extends State<WebVpnPage> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: _vpnController,
+                      maxLines: null,
                       decoration: InputDecoration(
                         hintText: '输入WebVPN网址后按回车转换',
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.outline,
-                          ),
+                        hintMaxLines: 2,
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 1),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
                         ),
                         errorText: _vpnError,
                       ),
@@ -155,6 +171,7 @@ class _WebVpnPageState extends State<WebVpnPage> {
                       alignment: Alignment.centerRight,
                       child: FilledButton.tonalIcon(
                         onPressed: () {
+                          Haptics.light();
                           if (_vpnController.text.isNotEmpty) {
                             Clipboard.setData(
                               ClipboardData(text: _vpnController.text),
@@ -175,18 +192,33 @@ class _WebVpnPageState extends State<WebVpnPage> {
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '本功能可以利用图书馆WebVPN访问仅限校园网访问的网页，'
-                '包括但不限于知网，校园网自服务等，为你不在校时使用资源提供便利。',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: theme.colorScheme.onPrimaryContainer,
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
                 ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '本功能可以利用图书馆WebVPN访问仅限校园网访问的网页，'
+                      '包括但不限于知网，校园网自服务等，为你不在校时使用资源提供便利。',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/types/net.dart';
+import '/utils/haptic.dart';
 
 class NetOnlineDeviceShowDialog extends StatelessWidget {
   final NetOnlineSession session;
@@ -110,6 +111,7 @@ class NetOnlineDeviceShowDialog extends StatelessWidget {
                   icon: const Icon(Icons.copy),
                   iconSize: 16,
                   onPressed: () async {
+                    Haptics.light();
                     await Clipboard.setData(
                       ClipboardData(text: currentSession.mac),
                     );
@@ -159,7 +161,10 @@ class NetOnlineDeviceShowDialog extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                Haptics.light();
+                Navigator.of(context).pop();
+              },
               child: const Text('关闭'),
             ),
           ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 import 'detail.dart';
 import 'submit.dart';
 import 'common.dart';
@@ -439,7 +440,10 @@ class _CourseListPageState extends State<CourseListPage>
         title: '选择课程',
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Haptics.selection();
+            Navigator.pop(context);
+          },
         ),
         actions: [buildTermInfoDisplay(context, widget.termInfo)],
       ),
@@ -532,6 +536,7 @@ class _CourseListPageState extends State<CourseListPage>
                 const SizedBox(height: 16),
                 FilledButton.tonal(
                   onPressed: () {
+                    Haptics.light();
                     _loadCourseTabs();
                     widget.onRetry?.call();
                   },
@@ -578,7 +583,10 @@ class _CourseListPageState extends State<CourseListPage>
                     suffixIcon: _currentSearchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, size: 16),
-                            onPressed: _clearSearch,
+                            onPressed: () {
+                              Haptics.selection();
+                              _clearSearch();
+                            },
                             padding: EdgeInsets.zero,
                           )
                         : null,
@@ -598,7 +606,10 @@ class _CourseListPageState extends State<CourseListPage>
                 SizedBox(
                   height: 36,
                   child: FilledButton.tonalIcon(
-                    onPressed: _showFilterDialog,
+                    onPressed: () {
+                      Haptics.selection();
+                      _showFilterDialog();
+                    },
                     icon: const Icon(Icons.filter_list, size: 18),
                     label: const Text('高级筛选'),
                   ),
@@ -681,6 +692,7 @@ class _CourseListPageState extends State<CourseListPage>
                           onSelected: isTabSwitchDisabled
                               ? null
                               : (selected) {
+                                  Haptics.selection();
                                   if (selected &&
                                       mounted &&
                                       _selectedTab?.tabId != tab.tabId) {
@@ -890,6 +902,7 @@ class _CourseListPageState extends State<CourseListPage>
             child: InkWell(
               borderRadius: BorderRadius.circular(28),
               onTap: () async {
+                Haptics.heavy();
                 // Pop dialog to confirm to clear
                 if (await alertClearSelectedWarning(context) == true) {
                   setState(() {
@@ -935,6 +948,7 @@ class _CourseListPageState extends State<CourseListPage>
               child: InkWell(
                 borderRadius: BorderRadius.circular(28),
                 onTap: () async {
+                  Haptics.medium();
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1183,7 +1197,10 @@ class _CourseTableRowState extends State<_CourseTableRow>
     return Column(
       children: [
         InkWell(
-          onTap: isToggleDisabled ? null : widget.onToggle,
+          onTap: isToggleDisabled ? null : () {
+            Haptics.selection();
+            widget.onToggle();
+          },
           splashColor: Theme.of(
             context,
           ).colorScheme.primary.withValues(alpha: 0.1),

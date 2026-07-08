@@ -44,6 +44,13 @@ struct WidgetCurriculumData: Codable {
     let calendarDays: [WidgetCalendarDay]?
     let termSeason: Int?
     let holidayMode: Bool?
+    let examMode: Bool?
+    let examLabel: String?
+    let examName: String?
+    let examTime: String?
+    let examDate: String?
+    let examDay: String?
+    let examRoom: String?
 }
 
 // MARK: - Timeline Provider
@@ -88,6 +95,25 @@ struct Provider: TimelineProvider {
             return
         }
 
+        if curriculum.examMode == true {
+            let examName = curriculum.examName ?? ""
+            if !examName.isEmpty {
+                let entry = ClassEntry(date: Date(), hasClass: true,
+                    className: examName,
+                    timeRange: "\(curriculum.examDate ?? "") \(curriculum.examDay ?? "")  \(curriculum.examTime ?? "")",
+                    location: curriculum.examRoom ?? "",
+                    teacher: "")
+                let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+                completion(Timeline(entries: [entry], policy: .after(refresh)))
+            } else {
+                let entry = ClassEntry(date: Date(), hasClass: false,
+                    className: "暂无考试", timeRange: "", location: "", teacher: "")
+                let refresh = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
+                completion(Timeline(entries: [entry], policy: .after(refresh)))
+            }
+            return
+        }
+
         let entries = generateTimelineEntries(from: curriculum)
         let lastEntry = entries.last!
         let midnight = Calendar.current.startOfDay(
@@ -104,6 +130,20 @@ struct Provider: TimelineProvider {
             return [ClassEntry(date: Date(), hasClass: false,
                 className: "假期快乐，祝你天天开心～",
                 timeRange: "", location: "", teacher: "")]
+        }
+
+        if data.examMode == true {
+            let examName = data.examName ?? ""
+            if !examName.isEmpty {
+                return [ClassEntry(date: Date(), hasClass: true,
+                    className: examName,
+                    timeRange: "\(data.examDate ?? "") \(data.examDay ?? "")  \(data.examTime ?? "")",
+                    location: data.examRoom ?? "",
+                    teacher: "")]
+            } else {
+                return [ClassEntry(date: Date(), hasClass: false,
+                    className: "暂无考试", timeRange: "", location: "", teacher: "")]
+            }
         }
 
         let calendar = Calendar.current

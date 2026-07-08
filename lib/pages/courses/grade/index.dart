@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 
 class GradePage extends StatefulWidget {
   const GradePage({super.key});
@@ -205,7 +206,10 @@ class _GradePageState extends State<GradePage> {
         content: Text(content),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop();
+            },
             child: const Text('确定'),
           ),
         ],
@@ -256,7 +260,10 @@ class _GradePageState extends State<GradePage> {
             ),
             const SizedBox(height: 16),
             FilledButton.tonal(
-                onPressed: _refreshGrades, child: const Text('重试')),
+                onPressed: () {
+                  Haptics.light();
+                  _refreshGrades();
+                }, child: const Text('重试')),
           ],
         ),
       );
@@ -318,7 +325,10 @@ class _GradePageState extends State<GradePage> {
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          onTap: !_isLoading ? _refreshGrades : null,
+          onTap: !_isLoading ? () {
+            Haptics.light();
+            _refreshGrades();
+          } : null,
           child: _isLoading
               ? const SizedBox(
                   width: 18,
@@ -329,12 +339,18 @@ class _GradePageState extends State<GradePage> {
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          onTap: _showQuickCalculation,
+          onTap: () {
+            Haptics.selection();
+            _showQuickCalculation();
+          },
           child: const Icon(Icons.calculate, size: 18),
         ),
         const SizedBox(width: 8),
         _buildActionButton(
-          onTap: _showOverview,
+          onTap: () {
+            Haptics.selection();
+            _showOverview();
+          },
           child: const Icon(Icons.analytics, size: 18),
         ),
       ],
@@ -437,7 +453,10 @@ class _GradePageState extends State<GradePage> {
                                 alignment: Alignment.center,
                                 child: Checkbox(
                                   value: _isAllSelected,
-                                  onChanged: (_) => _toggleSelectAll(),
+                                  onChanged: (_) {
+                                    Haptics.selection();
+                                    _toggleSelectAll();
+                                  },
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.shrinkWrap,
                                 ),
@@ -462,7 +481,10 @@ class _GradePageState extends State<GradePage> {
                           if (i > 0)
                             Divider(height: 1, color: dividerColor),
                           InkWell(
-                            onTap: () => _showGradeDetail(grade),
+                            onTap: () {
+                              Haptics.light();
+                              _showGradeDetail(grade);
+                            },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 12),
@@ -503,7 +525,10 @@ class _GradePageState extends State<GradePage> {
           alignment: Alignment.center,
           child: Checkbox(
             value: _selectedCourseIds.contains(grade.courseId),
-            onChanged: (_) => _toggleCourseSelection(grade.courseId),
+            onChanged: (_) {
+              Haptics.selection();
+              _toggleCourseSelection(grade.courseId);
+            },
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
@@ -703,7 +728,10 @@ class _GradeDetailDialogState extends State<_GradeDetailDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('关闭'),
         ),
       ],
@@ -797,7 +825,10 @@ class _GpaOverviewDialogState extends State<_GpaOverviewDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('关闭'),
         ),
       ],

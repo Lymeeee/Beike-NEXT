@@ -1,10 +1,13 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '/services/provider.dart';
-import '/services/class_reminder_service.dart';
 import '/services/widget_updater.dart';
 import '/main.dart';
 import '/types/preferences.dart';
+import '/utils/haptic.dart';
+import '/types/courses.dart';
 
 const _accentPresets = [
   null,
@@ -29,6 +32,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  static const _noBorderShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+  );
+
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
   bool _isClearingCache = false;
   bool _isClearingPrefs = false;
@@ -37,7 +44,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           SizedBox(height: MediaQuery.of(context).padding.top + 48),
           Padding(
@@ -50,9 +57,15 @@ class _SettingsPageState extends State<SettingsPage> {
             child: _buildAccentColorPicker(),
           ),
           const SizedBox(height: 24),
-          _buildReminderToggle(),
+          _buildExamModeToggle(),
           const SizedBox(height: 16),
           _buildHolidayToggle(),
+          const SizedBox(height: 16),
+          _buildHapticToggle(),
+          if (Platform.isAndroid) ...[
+            const SizedBox(height: 16),
+            _buildBatteryOptimizationTile(),
+          ],
           const SizedBox(height: 24),
           _buildDataSection(),
           if (kDebugMode) _buildServiceSection(),
@@ -81,6 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
         IconButton(
           icon: Icon(_getThemeIcon(ThemeManager.currentThemeMode)),
           onPressed: () {
+            Haptics.selection();
             ThemeManager.updateThemeMode(
               _getNextThemeMode(ThemeManager.currentThemeMode),
             );
@@ -107,6 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
         return GestureDetector(
           onTap: () {
+            Haptics.selection();
             ThemeManager.updateAccentColor(color);
             setState(() {});
           },
@@ -132,20 +147,22 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  bool _getReminderEnabled() {
+  bool _getExamModeEnabled() {
     final prefs = _serviceProvider.storeService
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    return prefs?.classReminderEnabled ?? false;
+    return prefs?.examMode ?? false;
   }
 
-  void _setReminderEnabled(bool value) {
+  void _setExamModeEnabled(bool value) {
     final existing = _serviceProvider.storeService
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
     final updated = AppSettings(
       themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
       accentColorValue:
           existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
-      classReminderEnabled: value,
+      holidayMode: existing?.holidayMode ?? false,
+      hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
+      examMode: value,
     );
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',
@@ -153,19 +170,31 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (value) {
-      ClassReminderService.instance.requestPermission();
-      ClassReminderService.instance.start();
+      _serviceProvider.storeService.delConfig('curriculum_data');
+      _updateWidgetForExamMode();
     } else {
-      ClassReminderService.instance.stop();
+      WidgetUpdater().updateFromCurriculum(null);
     }
+    _serviceProvider.notifySettingsChanged();
     setState(() {});
   }
 
-  Widget _buildReminderToggle() {
-    final enabled = _getReminderEnabled();
+  void _updateWidgetForExamMode() {
+    final cached = _serviceProvider.storeService.getPref<CachedExamList>(
+      'cached_exams',
+      CachedExamList.fromJson,
+    );
+    if (cached != null && cached.exams.isNotEmpty) {
+      WidgetUpdater().updateExams(cached.exams);
+    }
+  }
+
+  Widget _buildExamModeToggle() {
+    final enabled = _getExamModeEnabled();
 
     return Card.filled(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -175,14 +204,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '课程提醒',
+                    '考试模式',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '课前25分钟发送通知',
+                    '清除课表，首页与小组件显示考试信息',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -193,7 +222,10 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(width: 16),
             Switch(
               value: enabled,
-              onChanged: _setReminderEnabled,
+              onChanged: (value) {
+                Haptics.selection();
+                _setExamModeEnabled(value);
+              },
             ),
           ],
         ),
@@ -214,7 +246,6 @@ class _SettingsPageState extends State<SettingsPage> {
       themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
       accentColorValue:
           existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
-      classReminderEnabled: existing?.classReminderEnabled ?? false,
       holidayMode: value,
     );
     _serviceProvider.storeService.putPref<AppSettings>(
@@ -224,12 +255,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (value) {
       _serviceProvider.storeService.delConfig('curriculum_data');
-      ClassReminderService.instance.stop();
       WidgetUpdater().updateHoliday();
     } else {
-      ClassReminderService.instance.start();
       WidgetUpdater().updateFromCurriculum(null);
     }
+    _serviceProvider.notifySettingsChanged();
     setState(() {});
   }
 
@@ -237,7 +267,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final enabled = _getHolidayMode();
 
     return Card.filled(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -265,7 +296,135 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(width: 16),
             Switch(
               value: enabled,
-              onChanged: _setHolidayMode,
+              onChanged: (value) {
+                Haptics.selection();
+                _setHolidayMode(value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _getHapticEnabled() {
+    final prefs = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    return prefs?.hapticFeedbackEnabled ?? true;
+  }
+
+  void _setHapticEnabled(bool value) {
+    final existing = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    final updated = AppSettings(
+      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
+      accentColorValue:
+          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
+      holidayMode: existing?.holidayMode ?? false,
+      hapticFeedbackEnabled: value,
+    );
+    _serviceProvider.storeService.putPref<AppSettings>(
+      'app_settings',
+      updated,
+    );
+    Haptics.refresh();
+    setState(() {});
+  }
+
+  Widget _buildHapticToggle() {
+    final enabled = _getHapticEnabled();
+
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '触感反馈',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '按钮点击和手势操作时提供触感反馈',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Switch(
+              value: enabled,
+              onChanged: (value) {
+                Haptics.selection();
+                _setHapticEnabled(value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _batteryChannel = MethodChannel('com.lyme.beikenext/battery');
+
+  Future<void> _requestBatteryOptimization() async {
+    try {
+      await _batteryChannel.invokeMethod('openBatteryOptimizationSettings');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('无法打开设置: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildBatteryOptimizationTile() {
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '电池优化',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '关闭电池优化以确保课程提醒正常送达',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Haptics.light();
+                _requestBatteryOptimization();
+              },
+              icon: const Icon(Icons.battery_saver, size: 18),
+              label: const Text('设置'),
             ),
           ],
         ),
@@ -275,7 +434,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildDataSection() {
     return Card.filled(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -336,7 +496,10 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(width: 8),
         FilledButton.tonalIcon(
-          onPressed: isLoading ? null : onPressed,
+          onPressed: isLoading ? null : () {
+            Haptics.heavy();
+            onPressed();
+          },
           icon: isLoading
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.clear, size: 18),
@@ -348,7 +511,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildServiceSection() {
     return Card.filled(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -419,6 +583,7 @@ class _SettingsPageState extends State<SettingsPage> {
               icon: const Icon(Icons.refresh),
               tooltip: '恢复默认',
               onPressed: () {
+                Haptics.light();
                 controller.clear();
                 onChanged(defaultValue);
                 setState(() {});
@@ -437,8 +602,8 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('确认清除'),
         content: const Text('确定要清除所有配置数据吗？此操作不可撤销。'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('取消')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('确认')),
+          TextButton(onPressed: () { Haptics.light(); Navigator.of(context).pop(false); }, child: const Text('取消')),
+          FilledButton(onPressed: () { Haptics.medium(); Navigator.of(context).pop(true); }, child: const Text('确认')),
         ],
       ),
     );
@@ -467,8 +632,8 @@ class _SettingsPageState extends State<SettingsPage> {
         title: const Text('确认清除'),
         content: const Text('确定要清除所有偏好设置吗？此操作不可撤销。'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('取消')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('确认')),
+          TextButton(onPressed: () { Haptics.light(); Navigator.of(context).pop(false); }, child: const Text('取消')),
+          FilledButton(onPressed: () { Haptics.medium(); Navigator.of(context).pop(true); }, child: const Text('确认')),
         ],
       ),
     );

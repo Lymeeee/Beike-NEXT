@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/types/courses.dart';
 import '/services/provider.dart';
+import '/utils/haptic.dart';
 import 'common.dart';
 
 class CourseDetailCard extends StatefulWidget {
@@ -567,6 +568,7 @@ class _CourseDetailCardState extends State<CourseDetailCard>
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: () async {
+                    Haptics.selection();
                     await _handleCourseSelection(
                       courseDetail,
                       detail,
@@ -851,7 +853,10 @@ class _CourseDetailCardState extends State<CourseDetailCard>
         if (hasMore) ...[
           const SizedBox(height: 8),
           InkWell(
-            onTap: onToggle,
+            onTap: () {
+              Haptics.selection();
+              onToggle();
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -1062,6 +1067,7 @@ class _CourseDetailCardState extends State<CourseDetailCard>
                     child: InkWell(
                       borderRadius: BorderRadius.circular(8),
                       onTap: () async {
+                        Haptics.heavy();
                         await _handleCourseDeselection(courseDetail, detail);
                       },
                       child: Container(

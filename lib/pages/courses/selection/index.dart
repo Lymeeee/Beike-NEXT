@@ -3,6 +3,7 @@ import 'package:auto_route/auto_route.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 import 'common.dart';
 import 'list.dart';
 
@@ -132,18 +133,26 @@ class _CourseSelectionPageState extends State<CourseSelectionPage> {
           buildStepIndicator(context, 1),
           const SizedBox(height: 24),
 
-          Text(
-            '选择学期',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '请选择您要进行选课的学期',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '选择学期',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '请选择您要进行选课的学期',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 32),
 
@@ -180,7 +189,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage> {
                         ),
                         const SizedBox(height: 24),
                         FilledButton.tonalIcon(
-                          onPressed: _loadTerms,
+                          onPressed: () {
+                            Haptics.light();
+                            _loadTerms();
+                          },
                           icon: const Icon(Icons.refresh),
                           label: const Text('重试'),
                         ),
@@ -209,8 +221,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage> {
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              onPressed: () =>
-                                  context.router.pushPath('/courses/account'),
+                              onPressed: () {
+                                Haptics.selection();
+                                context.router.pushPath('/courses/account');
+                              },
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -259,6 +273,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage> {
                                 );
                               }).toList(),
                               onChanged: (TermInfo? newTerm) {
+                                Haptics.selection();
                                 if (mounted) {
                                   setState(() {
                                     _selectedTerm = newTerm;
@@ -344,7 +359,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage> {
                       ),
                       child: FilledButton(
                         onPressed: _selectedTerm != null && !_isLoading
-                            ? _loadCourseTabs
+                            ? () {
+                                Haptics.medium();
+                                _loadCourseTabs();
+                              }
                             : null,
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.transparent,

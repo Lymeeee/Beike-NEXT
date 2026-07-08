@@ -224,6 +224,16 @@ class UpcomingClassWidget : AppWidgetProvider() {
                     return
                 }
 
+                if (data.optBoolean("examMode", false)) {
+                    renderExamInfo(data, views)
+                    if (lastUpdateText != null) {
+                        views.setInt(R.id.update_text, "setVisibility", 0x00000000)
+                        views.setTextViewText(R.id.update_text, lastUpdateText)
+                    }
+                    attachClickIntent(context, views)
+                    return
+                }
+
                 val calendar = Calendar.getInstance()
                 val todayYear = calendar.get(Calendar.YEAR)
                 val todayMonth = calendar.get(Calendar.MONTH) + 1
@@ -293,6 +303,34 @@ class UpcomingClassWidget : AppWidgetProvider() {
                 views.setTextViewText(R.id.class_name_text, "数据解析失败")
                 if (lastUpdateText != null) views.setTextViewText(R.id.update_text, lastUpdateText)
                 attachClickIntent(context, views)
+            }
+        }
+
+        private fun renderExamInfo(data: JSONObject, views: RemoteViews) {
+            val examLabel = data.optString("examLabel", "")
+            val examName = data.optString("examName", "")
+            val examTime = data.optString("examTime", "")
+            val examDate = data.optString("examDate", "")
+            val examDay = data.optString("examDay", "")
+            val examRoom = data.optString("examRoom", "")
+
+            if (examName.isNotEmpty()) {
+                views.setInt(R.id.label_text, "setVisibility", 0x00000000)
+                views.setTextViewText(R.id.label_text, examLabel)
+                views.setInt(R.id.class_name_text, "setVisibility", 0x00000000)
+                views.setTextViewText(R.id.class_name_text, examName)
+                views.setInt(R.id.time_text, "setVisibility", 0x00000000)
+                views.setTextViewText(R.id.time_text, "$examDate $examDay  $examTime")
+                if (examRoom.isNotEmpty()) {
+                    views.setInt(R.id.location_text, "setVisibility", 0x00000000)
+                    views.setTextViewText(R.id.location_text, examRoom)
+                } else {
+                    views.setInt(R.id.location_text, "setVisibility", 0x00000008)
+                }
+                views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
+            } else {
+                hideAllFields(views)
+                views.setTextViewText(R.id.class_name_text, "暂无考试")
             }
         }
 

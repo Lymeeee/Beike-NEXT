@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '/utils/meta_info.dart';
+import '/utils/haptic.dart';
 
 class NetDialDrawer extends StatefulWidget {
   const NetDialDrawer({super.key});
@@ -183,7 +184,12 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _isDialing ? null : _startDial,
+              onPressed: _isDialing
+                  ? null
+                  : () {
+                      Haptics.medium();
+                      _startDial();
+                    },
               child: _isDialing
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
@@ -299,7 +305,10 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
             ),
             const SizedBox(height: 16),
             InkWell(
-              onTap: () => setState(() => _isExpanded = !_isExpanded),
+              onTap: () {
+                Haptics.selection();
+                setState(() => _isExpanded = !_isExpanded);
+              },
               borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -494,6 +503,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
           onPressed: () async {
+            Haptics.light();
             await Clipboard.setData(ClipboardData(text: ipAddress));
             if (mounted) {
               ScaffoldMessenger.of(

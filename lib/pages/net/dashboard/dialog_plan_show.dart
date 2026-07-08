@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '/types/net.dart';
+import '/utils/haptic.dart';
 
 class NetPlanShowDialog extends StatelessWidget {
   final NetUserInfo userInfo;
@@ -137,7 +138,10 @@ class NetPlanShowDialog extends StatelessWidget {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('关闭'),
         ),
       ],
@@ -178,11 +182,14 @@ class NetPlanShowDialog extends StatelessWidget {
     return FilledButton.tonalIcon(
       icon: const Icon(Icons.calculate_rounded),
       label: const Text('快捷计算'),
-      onPressed: () => showDialog(
-        context: context,
-        builder: (context) =>
-            NetQuickCalcDialog(unitFlowCost: userInfo.plan!.unitFlowCost),
-      ),
+      onPressed: () {
+        Haptics.selection();
+        showDialog(
+          context: context,
+          builder: (context) =>
+              NetQuickCalcDialog(unitFlowCost: userInfo.plan!.unitFlowCost),
+        );
+      },
     );
   }
 
@@ -190,22 +197,28 @@ class NetPlanShowDialog extends StatelessWidget {
     return FilledButton.tonalIcon(
       icon: const Icon(Icons.sentiment_dissatisfied_outlined),
       label: const Text('没那么快'),
-      onPressed: () => showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('没那么快'),
-          content: Text(
-            '由于 WLAN 的技术局限性，如果您使用的是无线网，则实际网速通常无法达到上限。',
-            style: theme.textTheme.bodyLarge,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('关闭'),
+      onPressed: () {
+        Haptics.selection();
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('没那么快'),
+            content: Text(
+              '由于 WLAN 的技术局限性，如果您使用的是无线网，则实际网速通常无法达到上限。',
+              style: theme.textTheme.bodyLarge,
             ),
-          ],
-        ),
-      ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Haptics.light();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('关闭'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -287,6 +300,7 @@ class _NetQuickCalcDialogState extends State<NetQuickCalcDialog> {
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
+                    Haptics.selection();
                     setState(() {
                       _unit = newValue!;
                       _calculateCost();
@@ -305,7 +319,10 @@ class _NetQuickCalcDialogState extends State<NetQuickCalcDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            Haptics.light();
+            Navigator.of(context).pop();
+          },
           child: const Text('关闭'),
         ),
       ],

@@ -2,8 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:auto_route/auto_route.dart';
 import '/utils/page_mixins.dart';
+import '/utils/haptic.dart';
+import '/utils/exam_helper.dart';
 import '/services/widget_updater.dart';
 import '/types/courses.dart';
+import '/types/preferences.dart';
 
 class _FeatureCardConfig {
   final String title;
@@ -30,11 +33,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with PageStateMixin, LoadingStateMixin {
+  static const _noBorderShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+  );
+
   UserInfo? _userInfo;
 
   ClassItem? _ongoingClass;
   ClassItem? _upcomingClass;
   CurriculumIntegratedData? _curriculumData;
+  ExamInfo? _ongoingExam;
+  ExamInfo? _upcomingExam;
   Timer? _shortRefreshTimer;
   // Feature card configurations
   late final List<_FeatureCardConfig> _courseFeatureCards = [
@@ -104,6 +113,7 @@ class _HomePageState extends State<HomePage>
   void onServiceInit() {
     _loadUserInfo();
     _loadCurriculumData();
+    _loadExamData();
     _startTimers();
   }
 
@@ -115,6 +125,7 @@ class _HomePageState extends State<HomePage>
         setState(() {});
         _loadUserInfo();
         _loadCurriculumData();
+        _loadExamData();
       }
     });
   }
@@ -160,6 +171,26 @@ class _HomePageState extends State<HomePage>
           _userInfo = null;
         });
       }
+    }
+  }
+
+  bool _getExamModeEnabled() {
+    final prefs = serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    return prefs?.examMode ?? false;
+  }
+
+  void _loadExamData() {
+    final cached = serviceProvider.storeService.getPref<CachedExamList>(
+      'cached_exams',
+      CachedExamList.fromJson,
+    );
+    if (cached != null && mounted) {
+      final exams = cached.exams;
+      setState(() {
+        _ongoingExam = ExamHelper.getOngoingExam(exams);
+        _upcomingExam = ExamHelper.getUpcomingExam(exams);
+      });
     }
   }
 
@@ -279,6 +310,62 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildNarrowLayout() {
+    final examMode = _getExamModeEnabled();
+
+    if (examMode) {
+      final examCards = <_FeatureCardConfig>[
+        _FeatureCardConfig(
+          title: '选课',
+          description: '查看和管理课程',
+          icon: Icons.school,
+          color: (c) => Theme.of(c).colorScheme.primary,
+          route: '/courses/selection',
+        ),
+        _FeatureCardConfig(
+          title: '课表',
+          description: '查看每周课程安排',
+          icon: Icons.calendar_today,
+          color: (c) => Theme.of(c).colorScheme.primary,
+          route: '/courses/curriculum',
+        ),
+        _FeatureCardConfig(
+          title: '成绩',
+          description: '查看考试成绩',
+          icon: Icons.assessment,
+          color: (c) => Theme.of(c).colorScheme.primary,
+          route: '/courses/grade',
+        ),
+      ];
+      return Column(
+        children: [
+          _buildExamCard(context, isWideScreen: false),
+          const SizedBox(height: 8),
+          SizedBox(height: 100, child: _buildAccountCard(context)),
+          ...examCards.map((card) {
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 100,
+                  child: _buildFeatureCard(
+                    context,
+                    card.title,
+                    card.description,
+                    card.icon,
+                    card.color,
+                    () {
+                      Haptics.selection();
+                      context.router.pushPath(card.route);
+                    },
+                  ),
+                ),
+              ],
+            );
+          }),
+        ],
+      );
+    }
+
     return Column(
       children: [
         _buildCurriculumCard(context, isWideScreen: false),
@@ -296,7 +383,10 @@ class _HomePageState extends State<HomePage>
                   card.description,
                   card.icon,
                   card.color,
-                  () => context.router.pushPath(card.route),
+                  () {
+                    Haptics.selection();
+                    context.router.pushPath(card.route);
+                  },
                 ),
               ),
             ],
@@ -307,6 +397,49 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildWideLayout() {
+    final examMode = _getExamModeEnabled();
+
+    if (examMode) {
+      final wideExamCards = [
+        _FeatureCardConfig(
+          title: '选课', description: '查看和管理课程',
+          icon: Icons.school, color: (c) => Theme.of(c).colorScheme.primary,
+          route: '/courses/selection',
+        ),
+        _FeatureCardConfig(
+          title: '课表', description: '查看每周课程安排',
+          icon: Icons.calendar_today, color: (c) => Theme.of(c).colorScheme.primary,
+          route: '/courses/curriculum',
+        ),
+        _FeatureCardConfig(
+          title: '成绩', description: '查看考试成绩',
+          icon: Icons.assessment, color: (c) => Theme.of(c).colorScheme.primary,
+          route: '/courses/grade',
+        ),
+      ];
+      return Column(
+        children: [
+          _buildExamCard(context, isWideScreen: true),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 120,
+            child: _buildCardRow([
+              _buildAccountCard(context),
+              wideExamCards[0],
+            ]),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 120,
+            child: _buildCardRow([
+              wideExamCards[1],
+              wideExamCards[2],
+            ]),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         _buildCurriculumCard(context, isWideScreen: true),
@@ -346,7 +479,10 @@ class _HomePageState extends State<HomePage>
                     item.description,
                     item.icon,
                     item.color,
-                    () => context.router.pushPath(item.route),
+                    () {
+                      Haptics.selection();
+                      context.router.pushPath(item.route);
+                    },
                   ),
           ),
         ];
@@ -362,8 +498,12 @@ class _HomePageState extends State<HomePage>
     final primaryColor = theme.colorScheme.primary;
 
     return Card.filled(
+      shape: _noBorderShape,
       child: InkWell(
-        onTap: () => context.router.pushPath('/courses/curriculum'),
+        onTap: () {
+          Haptics.selection();
+          context.router.pushPath('/courses/curriculum');
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
@@ -542,6 +682,194 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  Widget _buildExamCard(
+    BuildContext context, {
+    required bool isWideScreen,
+  }) {
+    final theme = Theme.of(context);
+
+    return Card.filled(
+      shape: _noBorderShape,
+      child: InkWell(
+        onTap: () {
+          Haptics.selection();
+          context.router.pushPath('/courses/exam');
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: theme.colorScheme.primaryContainer,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: _buildExamContent(isWideScreen: isWideScreen),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExamContent({required bool isWideScreen}) {
+    final hasExams = _ongoingExam != null || _upcomingExam != null;
+
+    if (isWideScreen) {
+      return Row(
+        children: [
+          Expanded(
+            flex: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.assignment, size: 36,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        '考试',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  hasExams ? '查看考试安排' : '暂无考试',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasExams) ...[
+            const SizedBox(width: 16),
+            Container(
+              constraints: const BoxConstraints(maxWidth: 290),
+              child: _buildExamPreviews(),
+            ),
+          ],
+        ],
+      );
+    } else {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.assignment, size: 32,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '考试',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (hasExams) ...[
+            const SizedBox(height: 16),
+            _buildExamPreviews(),
+          ] else ...[
+            const SizedBox(height: 16),
+            Text(
+              '暂无考试',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+  }
+
+  Widget _buildExamPreviews() {
+    final exams = <({ExamInfo exam, bool isOngoing})>[];
+    if (_ongoingExam != null) exams.add((exam: _ongoingExam!, isOngoing: true));
+    if (_upcomingExam != null) exams.add((exam: _upcomingExam!, isOngoing: false));
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(exams.length, (i) {
+          final entry = exams[i];
+          return Padding(
+            padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+            child: _buildSingleExamPreview(entry.exam, entry.isOngoing),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildSingleExamPreview(ExamInfo exam, bool isOngoing) {
+    final textStyle1 = TextStyle(
+      fontSize: 12,
+      color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+      fontWeight: FontWeight.w500,
+    );
+    final textStyle2 = TextStyle(
+      fontSize: 14,
+      color: Theme.of(context).colorScheme.onPrimaryContainer,
+      fontWeight: FontWeight.bold,
+    );
+    final textStyle3 = TextStyle(
+      fontSize: 12,
+      color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+    );
+
+    final dateStr = '${exam.examDateDisplay} ${exam.examDayName}';
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 220),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isOngoing ? '  考试进行中' : '  接下来', style: textStyle1),
+            const SizedBox(height: 4),
+            Text(
+              '  ${exam.courseName.replaceAll('\n', ' ')}',
+              style: textStyle2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text('  $dateStr  ${exam.examTime}', style: textStyle3),
+            if (exam.examRoom.isNotEmpty)
+              Text('  ${exam.examRoom}', style: textStyle3),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFeatureCard(
     BuildContext context,
     String title,
@@ -551,6 +879,7 @@ class _HomePageState extends State<HomePage>
     VoidCallback onTap,
   ) {
     return Card.filled(
+      shape: _noBorderShape,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -650,7 +979,10 @@ class _HomePageState extends State<HomePage>
                 card.description,
                 card.icon,
                 card.color,
-                () => context.router.pushPath(card.route),
+                () {
+                  Haptics.selection();
+                  context.router.pushPath(card.route);
+                },
               ),
             ),
           ];
@@ -687,8 +1019,12 @@ class _HomePageState extends State<HomePage>
     final descFontSize = isWideScreen ? 16.0 : 14.0;
 
     return Card.filled(
+      shape: _noBorderShape,
       child: InkWell(
-        onTap: () => context.router.pushPath(_emptyClassroomCard.route),
+        onTap: () {
+          Haptics.selection();
+          context.router.pushPath(_emptyClassroomCard.route);
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
@@ -744,8 +1080,12 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildAccountCard(BuildContext context) {
     return Card.filled(
+      shape: _noBorderShape,
       child: InkWell(
-        onTap: () => context.router.pushPath('/courses/account'),
+        onTap: () {
+          Haptics.selection();
+          context.router.pushPath('/courses/account');
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16.0),

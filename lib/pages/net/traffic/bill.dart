@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '/types/net.dart';
+import '/utils/haptic.dart';
 
 class NetMonthlyBillSection extends StatefulWidget {
   const NetMonthlyBillSection({
@@ -58,14 +59,20 @@ class _NetMonthlyBillSectionState extends State<NetMonthlyBillSection> {
                 IconButton(
                   onPressed: widget.isLoading
                       ? null
-                      : () => widget.onYearChanged(widget.year - 1),
+                      : () {
+                          Haptics.selection();
+                          widget.onYearChanged(widget.year - 1);
+                        },
                   icon: const Icon(Icons.chevron_left),
                 ),
                 Text('${widget.year} 年', style: theme.textTheme.titleMedium),
                 IconButton(
                   onPressed: widget.isLoading
                       ? null
-                      : () => widget.onYearChanged(widget.year + 1),
+                      : () {
+                          Haptics.selection();
+                          widget.onYearChanged(widget.year + 1);
+                        },
                   icon: const Icon(Icons.chevron_right),
                 ),
               ],
@@ -115,6 +122,7 @@ class _NetMonthlyBillSectionState extends State<NetMonthlyBillSection> {
                   Checkbox(
                     value: _optimizeDataFormat,
                     onChanged: (value) {
+                      Haptics.selection();
                       setState(() {
                         _optimizeDataFormat = value ?? true;
                       });

@@ -5,6 +5,7 @@ import '/services/provider.dart';
 import '/types/sync.dart';
 import '/types/preferences.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 import '/utils/sync_embeded.dart';
 
 class AnnouncementPage extends StatefulWidget {
@@ -161,7 +162,7 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
             ),
             const SizedBox(height: 24),
             FilledButton.tonal(
-              onPressed: _loadAnnouncements,
+              onPressed: () { Haptics.light(); _loadAnnouncements(); },
               child: const Text('重试'),
             ),
           ],
@@ -339,7 +340,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard>
             // Header with title and expand button
             InkWell(
               borderRadius: BorderRadius.circular(8),
-              onTap: () => widget.onExpandChanged(!widget.isExpanded),
+              onTap: () { Haptics.selection(); widget.onExpandChanged(!widget.isExpanded); },
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -513,7 +514,7 @@ class _AnnouncementCardState extends State<_AnnouncementCard>
                           if (!widget.isUnread && kDebugMode)
                             // Right side: Mark as unread button
                             TextButton.icon(
-                              onPressed: () => widget.onMarkReadStatus(false),
+                              onPressed: () { Haptics.selection(); widget.onMarkReadStatus(false); },
                               icon: Icon(
                                 Icons.mark_email_unread,
                                 size: 16,

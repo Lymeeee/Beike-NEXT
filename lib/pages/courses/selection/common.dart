@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
+import '/utils/haptic.dart';
 
 // Alerts and dialogs
 
@@ -40,11 +41,17 @@ Future<bool?> alertWarning(BuildContext context, String content, String tip) {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop(false);
+            },
             child: const Text('否'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () {
+              Haptics.medium();
+              Navigator.of(context).pop(true);
+            },
             child: const Text('是'),
           ),
         ],
@@ -150,7 +157,10 @@ class _CourseDeselectionDialogState extends State<CourseDeselectionDialog> {
         ),
         actions: [
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () {
+              Haptics.medium();
+              Navigator.of(context).pop(true);
+            },
             child: const Text('确定'),
           ),
         ],
@@ -189,7 +199,10 @@ class _CourseDeselectionDialogState extends State<CourseDeselectionDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop(false);
+            },
             child: const Text('关闭'),
           ),
         ],
@@ -239,10 +252,16 @@ class _CourseDeselectionDialogState extends State<CourseDeselectionDialog> {
       actions: [
         if (!_isLoading) ...[
           TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
+            onPressed: () {
+              Haptics.light();
+              Navigator.of(context).pop(null);
+            },
             child: const Text('取消'),
           ),
-          FilledButton(onPressed: _runDeselection, child: const Text('确认退课')),
+          FilledButton(onPressed: () {
+            Haptics.heavy();
+            _runDeselection();
+          }, child: const Text('确认退课')),
         ],
       ],
     );

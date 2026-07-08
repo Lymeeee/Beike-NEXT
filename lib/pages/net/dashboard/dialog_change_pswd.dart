@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
 import '/types/net.dart';
+import '/utils/haptic.dart';
 
 class NetChangePasswordDialog extends StatefulWidget {
   const NetChangePasswordDialog({super.key});
@@ -189,13 +190,21 @@ class _NetChangePasswordDialogState extends State<NetChangePasswordDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+          onPressed: _isLoading
+              ? null
+              : () {
+                  Haptics.light();
+                  Navigator.of(context).pop(false);
+                },
           child: const Text('取消'),
         ),
         FilledButton(
           onPressed: (_isLoading || !_isChangeAllowed)
               ? null
-              : _handleChangePassword,
+              : () {
+                  Haptics.medium();
+                  _handleChangePassword();
+                },
           child: _isLoading
               ? const SizedBox(
                   height: 20,

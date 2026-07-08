@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
+import '/utils/haptic.dart';
 
 mixin PageStateMixin<T extends StatefulWidget> on State<T> {
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
@@ -86,7 +87,7 @@ mixin LoadingStateMixin<T extends StatefulWidget> on State<T> {
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: onRetry, child: const Text('重试')),
+            FilledButton.tonal(onPressed: () { Haptics.light(); onRetry(); }, child: const Text('重试')),
           ],
         ],
       ),

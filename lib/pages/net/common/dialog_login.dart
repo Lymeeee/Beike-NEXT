@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
 import '/types/net.dart';
+import '/utils/haptic.dart';
 
 class NetLoginDialog extends StatefulWidget {
   const NetLoginDialog({super.key});
@@ -220,7 +221,10 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
             if (_hasAutoFilled) ...[
               const SizedBox(height: 12),
               TextButton.icon(
-                onPressed: _clearLoginHistory,
+                onPressed: () {
+                  Haptics.light();
+                  _clearLoginHistory();
+                },
                 icon: const Icon(Icons.delete_outline),
                 label: const Text('清除登录历史'),
                 style: TextButton.styleFrom(
@@ -250,7 +254,10 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
                         )
                       else if (_extraCodeImage != null)
                         InkWell(
-                          onTap: _loadExtraCodeImage,
+                          onTap: () {
+                            Haptics.selection();
+                            _loadExtraCodeImage();
+                          },
                           child: Image.memory(
                             _extraCodeImage!,
                             height: 48,
@@ -264,7 +271,10 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
                           width: 128,
                           child: Center(
                             child: TextButton(
-                              onPressed: _loadExtraCodeImage,
+                              onPressed: () {
+                                Haptics.selection();
+                                _loadExtraCodeImage();
+                              },
                               child: const Text('加载验证码'),
                             ),
                           ),
@@ -287,11 +297,21 @@ class _NetLoginDialogState extends State<NetLoginDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          onPressed: _isLoading
+              ? null
+              : () {
+                  Haptics.light();
+                  Navigator.of(context).pop();
+                },
           child: const Text('取消'),
         ),
         FilledButton(
-          onPressed: (_isLoading || !isLoginAllowed()) ? null : _handleLogin,
+          onPressed: (_isLoading || !isLoginAllowed())
+              ? null
+              : () {
+                  Haptics.medium();
+                  _handleLogin();
+                },
           child: _isLoading
               ? const SizedBox(
                   height: 20,

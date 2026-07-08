@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/utils/haptic.dart';
 
 class LoginDialog extends StatelessWidget {
   final String title;
@@ -78,7 +79,7 @@ class LoginDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () { Haptics.light(); Navigator.of(context).pop(); },
                     icon: const Icon(Icons.close),
                   ),
                 ],

@@ -2,7 +2,7 @@
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'utils/back_handle.dart';
+import 'utils/haptic.dart';
 import 'pages/index.dart';
 import 'pages/courses/selection/index.dart';
 import 'pages/courses/curriculum/index.dart';
@@ -46,8 +46,6 @@ const _bottomTabs = [
   ),
 ];
 
-/// Tracks the last user-selected tab index so sub-page navigation
-/// doesn't shift the bottom bar highlight.
 int _lastUserTabIndex = 0;
 
 class AppRouter {
@@ -134,43 +132,66 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  Widget? _cachedChild;
-  final GlobalKey _contentKey = GlobalKey();
+  int _activeTab = 0;
 
-  String get _currentPath {
-    if (context.mounted) {
-      return context.routeData.path;
-    }
-    return '/';
-  }
+  static const _tabPages = <Widget>[
+    HomePage(),
+    SettingsPage(),
+  ];
 
-  int get _selectedTabIndex {
-    // When on a tab root path, update the tracked index and return it.
-    for (int i = 0; i < _bottomTabs.length; i++) {
-      if (_currentPath == _bottomTabs[i].rootPath) {
-        _lastUserTabIndex = i;
-        return i;
-      }
-    }
-    // On sub-pages, keep the last user-selected tab so the
-    // bottom bar doesn't jump around.
-    return _lastUserTabIndex;
-  }
+  String get _path => context.routeData.path;
 
   void _onTabSelected(int index) {
+    Haptics.selection();
     _lastUserTabIndex = index;
-    final tab = _bottomTabs[index];
-    context.router.replacePath(tab.rootPath);
+    final isOnTabRoot = _bottomTabs.any((t) => t.rootPath == _path);
+
+    if (isOnTabRoot) {
+      if (_activeTab != index) setState(() => _activeTab = index);
+    } else {
+      context.router.replacePath(_bottomTabs[index].rootPath);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    _cachedChild ??= widget.child;
+    final path = _path;
+    final isTabRoot = _bottomTabs.any((t) => t.rootPath == path);
 
-    final content = Scaffold(
-      body: KeyedSubtree(key: _contentKey, child: _cachedChild!),
+    if (isTabRoot) {
+      _lastUserTabIndex = _activeTab;
+    } else {
+      for (int i = _bottomTabs.length - 1; i >= 0; i--) {
+        if (_bottomTabs[i].pathPrefixes.any((p) => path.startsWith(p))) {
+          _lastUserTabIndex = i;
+          break;
+        }
+      }
+    }
+
+    final scaffold = Scaffold(
+      body: isTabRoot
+          ? ClipRect(
+              child: Stack(
+                children: List.generate(_tabPages.length, (i) {
+                  final isActive = _activeTab == i;
+                  return IgnorePointer(
+                    ignoring: !isActive,
+                    child: AnimatedSlide(
+                      offset: isActive
+                          ? Offset.zero
+                          : Offset(_activeTab > i ? -1.0 : 1.0, 0.0),
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      child: _tabPages[i],
+                    ),
+                  );
+                }),
+              ),
+            )
+          : widget.child,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedTabIndex,
+        selectedIndex: _lastUserTabIndex,
         onDestinationSelected: _onTabSelected,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: _bottomTabs
@@ -184,10 +205,6 @@ class _MainLayoutState extends State<MainLayout> {
       ),
     );
 
-    final isTabRoot =
-        _bottomTabs.any((tab) => tab.rootPath == _currentPath);
-    return isTabRoot
-        ? DoubleBackToExitWrapper(child: content)
-        : content;
+    return scaffold;
   }
 }

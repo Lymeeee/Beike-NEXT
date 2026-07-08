@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '/services/provider.dart';
+import '/utils/haptic.dart';
 import '/utils/login_dialog.dart';
 
 Future<void> showCookieLoginDialog(
@@ -214,7 +215,10 @@ class _CookieLoginDialogState extends State<_CookieLoginDialog> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _isLoading ? null : _handleLogin,
+              onPressed: _isLoading ? null : () {
+                Haptics.medium();
+                _handleLogin();
+              },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

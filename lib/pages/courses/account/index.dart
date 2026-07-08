@@ -3,6 +3,7 @@ import '/services/provider.dart';
 import '/services/base.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 import '/utils/sync_embeded.dart';
 import 'ustb_byyt_cookie.dart';
 import 'ustb_byyt_sso.dart';
@@ -145,11 +146,17 @@ class _AccountPageState extends State<AccountPage> {
           content: const Text('是否确认登出此账户？'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () {
+                Haptics.light();
+                Navigator.of(context).pop(false);
+              },
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () {
+                Haptics.medium();
+                Navigator.of(context).pop(true);
+              },
               child: const Text('确认'),
             ),
           ],
@@ -317,7 +324,10 @@ class _AccountPageState extends State<AccountPage> {
                   // Logout button (only show when logged in)
                   if (!_showLoginButton)
                     OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _handleLogout,
+                      onPressed: _isLoading ? null : () {
+                        Haptics.heavy();
+                        _handleLogout();
+                      },
                       icon: _isLoading
                           ? SizedBox(
                               width: 16,
@@ -359,6 +369,7 @@ class _AccountPageState extends State<AccountPage> {
                     subtitle: const Text('推荐方式，使用USTB SSO系统安全便捷登录'),
                     trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
+                      Haptics.selection();
                       showSsoLoginDialog(
                         context,
                         onLoginSuccess: (method, cookie) {
@@ -379,6 +390,7 @@ class _AccountPageState extends State<AccountPage> {
                     subtitle: const Text('适用于高级用户，需要手动提供Cookie'),
                     trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
+                      Haptics.selection();
                       showCookieLoginDialog(
                         context,
                         onLoginSuccess: (method, cookie) {
@@ -395,7 +407,10 @@ class _AccountPageState extends State<AccountPage> {
           ],
           // User information section
           if (service.isOnline && _userInfo != null) ...[
-            Text('个人信息', style: Theme.of(context).textTheme.headlineSmall),
+            Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: Text('个人信息', style: Theme.of(context).textTheme.headlineSmall),
+            ),
             const SizedBox(height: 16),
             Card.filled(
               child: Padding(

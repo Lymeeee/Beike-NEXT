@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
+import '/utils/haptic.dart';
 import '/services/provider.dart';
 import 'common.dart';
 
@@ -261,6 +262,7 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
+              Haptics.selection();
               Navigator.pop(context);
             },
           ),
@@ -344,6 +346,7 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
                 onChanged: _isSubmitting
                     ? null
                     : (value) {
+                        Haptics.selection();
                         setState(() {
                           _autoRetry = value;
                         });
@@ -391,6 +394,7 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
                 onChanged: _isSubmitting
                     ? null
                     : (value) {
+                        Haptics.selection();
                         if (value != null) {
                           setState(() {
                             _concurrencyCount = value;
@@ -666,9 +670,15 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
         child: InkWell(
           borderRadius: BorderRadius.circular(28),
           onTap: canStop
-              ? _requestStopSubmission
+              ? () {
+                  Haptics.medium();
+                  _requestStopSubmission();
+                }
               : canSubmit
-              ? _handleSubmit
+              ? () {
+                  Haptics.medium();
+                  _handleSubmit();
+                }
               : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -728,11 +738,15 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
         content: Text('确认提交 $courseCount 门课程的选课申请？'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Haptics.light();
+              Navigator.pop(context);
+            },
             child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () {
+              Haptics.medium();
               Navigator.pop(context);
               _startSubmission();
             },
@@ -909,6 +923,7 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
         actions: [
           FilledButton(
             onPressed: () {
+              Haptics.medium();
               Navigator.pop(context);
             },
             child: const Text('确定'),
@@ -952,6 +967,7 @@ class _CourseSubmitPageState extends State<CourseSubmitPage>
         actions: [
           FilledButton(
             onPressed: () {
+              Haptics.medium();
               Navigator.pop(context);
             },
             child: const Text('确定'),

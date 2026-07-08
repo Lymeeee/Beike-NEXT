@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/services/provider.dart';
+import '/utils/haptic.dart';
 
 class NetChangeMaxConsumeDialog extends StatefulWidget {
   final int? currentMaxConsume;
@@ -105,6 +106,7 @@ class _NetChangeMaxConsumeDialogState extends State<NetChangeMaxConsumeDialog> {
               onChanged: _isLoading
                   ? null
                   : (value) {
+                      Haptics.selection();
                       setState(() {
                         _enableLimit = value ?? false;
                         if (!_enableLimit) {
@@ -147,13 +149,21 @@ class _NetChangeMaxConsumeDialogState extends State<NetChangeMaxConsumeDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+          onPressed: _isLoading
+              ? null
+              : () {
+                  Haptics.light();
+                  Navigator.of(context).pop(false);
+                },
           child: const Text('取消'),
         ),
         FilledButton(
           onPressed: (_isLoading || !_isChangeAllowed)
               ? null
-              : _handleChangeConsume,
+              : () {
+                  Haptics.medium();
+                  _handleChangeConsume();
+                },
           child: _isLoading
               ? const SizedBox(
                   height: 20,
