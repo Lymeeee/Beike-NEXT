@@ -47,6 +47,7 @@ const _bottomTabs = [
 ];
 
 int _lastUserTabIndex = 0;
+String _lastPath = '';
 
 class AppRouter {
   static final router = RootStackRouter.build(
@@ -133,7 +134,6 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _activeTab = 0;
-  String _previousPath = '';
 
   static const _tabPages = <Widget>[
     HomePage(),
@@ -158,8 +158,8 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final path = _path;
-    final pathChanged = _previousPath != path;
-    _previousPath = path;
+    final pathChanged = _lastPath != path;
+    _lastPath = path;
 
     final isTabRoot = _bottomTabs.any((t) => t.rootPath == path);
 

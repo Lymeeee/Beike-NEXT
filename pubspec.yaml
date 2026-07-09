@@ -111,9 +111,9 @@ flutter:
     - assets/icons/
 
   fonts:
-    - family: HarmonyOS_Sans_SC
+    - family: MiSans
       fonts:
-        - asset: assets/fonts/HarmonyOS_Sans_SC_Regular.ttf
+        - asset: assets/fonts/MiSans-Regular.ttf
 
 flutter_launcher_icons:
   image_path: assets/icons/app_icon.png
