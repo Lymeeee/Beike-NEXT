@@ -336,7 +336,7 @@ class _EmptyClassroomPageState extends State<EmptyClassroomPage>
             // Section header — uses primaryContainer for MD3 accent
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
@@ -371,6 +371,7 @@ class _EmptyClassroomPageState extends State<EmptyClassroomPage>
             Wrap(
               spacing: 6,
               runSpacing: 6,
+              alignment: WrapAlignment.center,
               children: node.classroomItems.map((room) {
                 return _buildRoomChip(theme, room, node);
               }).toList(),
