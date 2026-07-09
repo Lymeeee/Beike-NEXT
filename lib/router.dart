@@ -133,6 +133,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _activeTab = 0;
+  String _previousPath = '';
 
   static const _tabPages = <Widget>[
     HomePage(),
@@ -157,10 +158,15 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     final path = _path;
+    final pathChanged = _previousPath != path;
+    _previousPath = path;
+
     final isTabRoot = _bottomTabs.any((t) => t.rootPath == path);
 
-    if (isTabRoot) {
-      _lastUserTabIndex = _activeTab;
+    if (isTabRoot && pathChanged) {
+      final tabIndex = _bottomTabs.indexWhere((t) => t.rootPath == path);
+      _activeTab = tabIndex;
+      _lastUserTabIndex = tabIndex;
     }
 
     final scaffold = Scaffold(

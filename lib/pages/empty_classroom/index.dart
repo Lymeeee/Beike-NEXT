@@ -336,7 +336,7 @@ class _EmptyClassroomPageState extends State<EmptyClassroomPage>
             // Section header — uses primaryContainer for MD3 accent
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(12),
