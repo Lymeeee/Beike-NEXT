@@ -138,147 +138,111 @@ class _NetMonthlyBillSectionState extends State<NetMonthlyBillSection> {
     );
   }
 
+  static const double _minTableWidth = 580;
+
   Widget _buildBillTable(ThemeData theme) {
-    final columnConfig = [
-      {'name': '开始日期', 'width': 85.0, 'isNumeric': false},
-      {'name': '结束日期', 'width': 85.0, 'isNumeric': false},
-      {'name': '套餐类型', 'width': 80.0, 'isNumeric': false},
-      {'name': '基本月租', 'width': 80.0, 'isNumeric': true},
-      {'name': '时长/流量计费', 'width': 95.0, 'isNumeric': true},
-      {'name': '使用时长', 'width': 80.0, 'isNumeric': true},
-      {'name': '使用流量', 'width': 80.0, 'isNumeric': true},
-      {'name': '出账时间', 'width': 130.0, 'isNumeric': false},
+    final columnNames = [
+      '开始日期', '结束日期', '套餐类型', '基本月租',
+      '时长/流量计费', '使用时长', '使用流量', '出账时间',
     ];
 
-    final dividerColor =
-        theme.colorScheme.outlineVariant.withValues(alpha: 0.4);
+    TableRow headerRow() {
+      return TableRow(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer,
+        ),
+        children: columnNames.map((name) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+            child: Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+            ),
+          );
+        }).toList(),
+      );
+    }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Column(
+    TableRow dataRow(MonthlyBill bill, int index) {
+      final bgColor = index.isEven
+          ? null
+          : theme.colorScheme.surfaceContainerLowest;
+      return TableRow(
+        decoration: BoxDecoration(color: bgColor),
         children: [
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: columnConfig.map((col) {
-                return _buildHeaderCell(
-                  col['name'] as String,
-                  col['width'] as double,
-                  isNumeric: col['isNumeric'] as bool,
-                );
-              }).toList(),
-            ),
-          ),
-          Divider(height: 1, color: dividerColor),
-          ...List.generate(widget.bills.length, (i) {
-            final bill = widget.bills[i];
-            final isLast = i == widget.bills.length - 1;
-            return Column(
-              children: [
-                if (i > 0) Divider(height: 1, color: dividerColor),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: i.isEven
-                        ? null
-                        : theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: isLast
-                        ? const BorderRadius.vertical(
-                            bottom: Radius.circular(16))
-                        : null,
-                  ),
-                  child: Row(
-                    children: [
-                      _buildDataCell(
-                        Text(_formatDate(bill.startDate)),
-                        (columnConfig[0]['width'] as double),
-                      ),
-                      _buildDataCell(
-                        Text(_formatDate(bill.endDate)),
-                        (columnConfig[1]['width'] as double),
-                      ),
-                      _buildDataCell(
-                        Text(bill.packageName.isEmpty
-                            ? '--'
-                            : bill.packageName),
-                        (columnConfig[2]['width'] as double),
-                      ),
-                      _buildDataCell(
-                        Text(
-                          _formatCurrency(bill.monthlyFee),
-                          textAlign: TextAlign.right,
-                        ),
-                        (columnConfig[3]['width'] as double),
-                        isNumeric: true,
-                      ),
-                      _buildDataCell(
-                        Text(
-                          _formatCurrency(bill.usageFee),
-                          textAlign: TextAlign.right,
-                        ),
-                        (columnConfig[4]['width'] as double),
-                        isNumeric: true,
-                      ),
-                      _buildDataCell(
-                        Text(
-                          _formatDuration(bill.usageDurationMinutes),
-                          textAlign: TextAlign.right,
-                        ),
-                        (columnConfig[5]['width'] as double),
-                        isNumeric: true,
-                      ),
-                      _buildDataCell(
-                        Text(
-                          _formatDataSize(bill.usageFlowMb),
-                          textAlign: TextAlign.right,
-                        ),
-                        (columnConfig[6]['width'] as double),
-                        isNumeric: true,
-                      ),
-                      _buildDataCell(
-                        Text(_formatDateTime(bill.createTime)),
-                        (columnConfig[7]['width'] as double),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }),
+          _cell(_formatDate(bill.startDate)),
+          _cell(_formatDate(bill.endDate)),
+          _cell(bill.packageName.isEmpty ? '--' : bill.packageName),
+          _cell(_formatCurrency(bill.monthlyFee)),
+          _cell(_formatCurrency(bill.usageFee)),
+          _cell(_formatDuration(bill.usageDurationMinutes)),
+          _cell(_formatDataSize(bill.usageFlowMb)),
+          _cell(_formatDateTime(bill.createTime)),
         ],
-      ),
+      );
+    }
+
+    const flexWidths = {
+      0: FlexColumnWidth(2),
+      1: FlexColumnWidth(2),
+      2: FlexColumnWidth(2),
+      3: FlexColumnWidth(1.5),
+      4: FlexColumnWidth(2),
+      5: FlexColumnWidth(1.5),
+      6: FlexColumnWidth(1.5),
+      7: FlexColumnWidth(3),
+    };
+
+    const fixedWidths = {
+      0: FixedColumnWidth(80),
+      1: FixedColumnWidth(80),
+      2: FixedColumnWidth(70),
+      3: FixedColumnWidth(65),
+      4: FixedColumnWidth(85),
+      5: FixedColumnWidth(65),
+      6: FixedColumnWidth(65),
+      7: FixedColumnWidth(130),
+    };
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useScroll = constraints.maxWidth < _minTableWidth;
+
+        Widget table = Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Table(
+            columnWidths: useScroll ? fixedWidths : flexWidths,
+            children: [
+              headerRow(),
+              for (var i = 0; i < widget.bills.length; i++)
+                dataRow(widget.bills[i], i),
+            ],
+          ),
+        );
+
+        if (useScroll) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: table,
+          );
+        }
+
+        return table;
+      },
     );
   }
 
-  Widget _buildHeaderCell(String text, double width,
-      {bool isNumeric = false}) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+  Widget _cell(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Text(
         text,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-        textAlign: isNumeric ? TextAlign.right : TextAlign.left,
-        maxLines: 2,
-      ),
-    );
-  }
-
-  Widget _buildDataCell(Widget child, double width,
-      {bool isNumeric = false}) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Align(
-        alignment: isNumeric ? Alignment.centerRight : Alignment.centerLeft,
-        child: child,
+        textAlign: TextAlign.center,
       ),
     );
   }

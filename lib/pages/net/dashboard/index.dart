@@ -493,7 +493,6 @@ class _NetDashboardPageState extends State<NetDashboardPage>
       color: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -530,20 +529,16 @@ class _NetDashboardPageState extends State<NetDashboardPage>
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.5,
-                ),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // User info section
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.only(bottom: 10),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -604,28 +599,23 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                   Divider(height: 4),
                   // Flow progress bar section
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.only(top: 10, bottom: 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [_buildFlowProgressBarContent(theme, info)],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-                    child: Row(
-                      children: [
-                        Icon(Icons.account_balance_wallet,
-                            size: 18, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text('余额',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant)),
-                        const SizedBox(width: 8),
-                        Text('¥${info.moneyLeft.toStringAsFixed(2)}',
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet,
+                          size: 12, color: theme.colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Text('余额',
+                          style: theme.textTheme.bodySmall),
+                      const SizedBox(width: 6),
+                      Text('¥${info.moneyLeft.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodySmall),
+                    ],
                   ),
                 ],
               ),
@@ -881,7 +871,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                     height: 12,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(2),
+                      shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -900,7 +890,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                       height: 12,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(2),
+                        shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -921,7 +911,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                       height: 12,
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(2),
+                        shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -939,7 +929,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                     height: 12,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.error,
-                      borderRadius: BorderRadius.circular(2),
+                      shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 6),

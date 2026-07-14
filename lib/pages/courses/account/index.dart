@@ -362,7 +362,13 @@ class _AccountPageState extends State<AccountPage> {
             ),
             const SizedBox(height: 16),
             // Login methods list
-            Card.filled(
+            Card(
+              color: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant),
+              ),
               child: Column(
                 children: [
                   ListTile(
