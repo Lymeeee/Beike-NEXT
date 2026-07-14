@@ -4,7 +4,6 @@
     android:id="@+id/widget_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
     android:gravity="center_vertical"
     android:orientation="vertical"
     android:padding="12dp">
