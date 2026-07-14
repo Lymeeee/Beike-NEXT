@@ -78,8 +78,7 @@ class _CurriculumPageState extends State<CurriculumPage>
       CurriculumIntegratedData.fromJson,
     );
     if (cached != null) {
-      WidgetUpdater().updateFromCurriculum(cached, customCourses: _customCourses,
-          widgetBgColor: Theme.of(context).colorScheme.secondaryContainer);
+      WidgetUpdater().updateFromCurriculum(cached, customCourses: _customCourses);
     }
   }
 

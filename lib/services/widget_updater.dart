@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui' show Color;
 import 'package:flutter/services.dart';
 import '/types/courses.dart';
 
@@ -11,7 +10,7 @@ class WidgetUpdater {
   WidgetUpdater._internal();
 
   void updateFromCurriculum(CurriculumIntegratedData? data,
-      {List<ClassItem>? customCourses, Color? widgetBgColor}) {
+      {List<ClassItem>? customCourses}) {
     final payload = <String, dynamic>{
       'hasData': data != null,
     };
@@ -34,10 +33,6 @@ class WidgetUpdater {
         }
         payload['allClasses'] = allClasses;
       }
-    }
-
-    if (widgetBgColor != null) {
-      payload['widgetBgColor'] = widgetBgColor.toARGB32();
     }
 
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));

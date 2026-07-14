@@ -202,8 +202,7 @@ class _HomePageState extends State<HomePage>
         final newOngoingClass = curriculumData?.getClassOngoing();
         final newUpcomingClass = curriculumData?.getClassUpcoming();
 
-        WidgetUpdater().updateFromCurriculum(curriculumData,
-          widgetBgColor: Theme.of(context).colorScheme.secondaryContainer);
+        WidgetUpdater().updateFromCurriculum(curriculumData);
 
         if (_ongoingClass != newOngoingClass ||
             _upcomingClass != newUpcomingClass ||

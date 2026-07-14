@@ -201,15 +201,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val json = prefs.getString(KEY_FULL_DATA, null)
 
-            // Apply dynamic background color if present
-            try {
-                val data = JSONObject(json ?: "{}")
-                val bgColor = data.optInt("widgetBgColor", -1)
-                if (bgColor != -1) {
-                    views.setInt(R.id.widget_container, "setBackgroundColor", bgColor)
-                }
-            } catch (_: Exception) {}
-
             // Show last update time
             val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0)
             val lastUpdateText = if (lastUpdate > 0) {
@@ -472,7 +463,7 @@ class UpcomingClassWidget : AppWidgetProvider() {
                 }
             } else {
                 hideAllFields(views)
-                views.setTextViewText(R.id.class_name_text, "今日课毕")
+                views.setTextViewText(R.id.class_name_text, "今天所有课程都结束了～")
             }
         }
 
