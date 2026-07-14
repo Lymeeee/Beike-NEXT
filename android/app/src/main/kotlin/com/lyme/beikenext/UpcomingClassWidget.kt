@@ -227,7 +227,7 @@ class UpcomingClassWidget : AppWidgetProvider() {
 
                 if (data.optBoolean("holidayMode", false)) {
                     hideAllFields(views)
-                    views.setTextViewText(R.id.class_name_text, "假期快乐，祝你天天开心～")
+                    views.setTextViewText(R.id.class_name_text, "假期愉快，要天天开心呀～")
                     attachClickIntent(context, views)
                     return
                 }
@@ -308,7 +308,7 @@ class UpcomingClassWidget : AppWidgetProvider() {
                     val isWeekend = todayWeekday >= 6
                     hideAllFields(views)
                     views.setTextViewText(R.id.class_name_text,
-                        if (isWeekend) "周末愉快～" else "今日无课")
+                        if (isWeekend) "周末愉快～" else "啊？今天一节课都没有！")
                     views.setInt(R.id.location_text, "setVisibility", 0x00000008)
                     views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
                     if (lastUpdateText != null) {
@@ -415,7 +415,7 @@ class UpcomingClassWidget : AppWidgetProvider() {
 
             if (timedClasses.isEmpty()) {
                 hideAllFields(views)
-                views.setTextViewText(R.id.class_name_text, "今日无课")
+                views.setTextViewText(R.id.class_name_text, "啊？今天一节课都没有！")
                 return
             }
 
@@ -463,7 +463,7 @@ class UpcomingClassWidget : AppWidgetProvider() {
                 }
             } else {
                 hideAllFields(views)
-                views.setTextViewText(R.id.class_name_text, "今天所有课程都结束了～")
+                views.setTextViewText(R.id.class_name_text, "今天的课都上完啦～")
             }
         }
 

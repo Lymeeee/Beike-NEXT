@@ -73,7 +73,7 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<ClassEntry>) -> Void) {
         guard let curriculum = readCurriculumData(), curriculum.hasData else {
             let entry = ClassEntry(date: Date(), hasClass: false,
-                className: "等待数据同步…", timeRange: "打开App后自动更新",
+                className: "等待数据同步…", timeRange: "",
                 location: "", teacher: "")
             let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
             completion(Timeline(entries: [entry], policy: .after(refresh)))
@@ -82,7 +82,7 @@ struct Provider: TimelineProvider {
 
         if curriculum.holidayMode == true {
             let entry = ClassEntry(date: Date(), hasClass: false,
-                className: "假期快乐，祝你天天开心～",
+                className: "假期愉快，要天天开心呀～",
                 timeRange: "", location: "", teacher: "")
             let midnight = Calendar.current.startOfDay(
                 for: Calendar.current.date(byAdding: .day, value: 1, to: Date())!
@@ -105,7 +105,7 @@ struct Provider: TimelineProvider {
     private func generateTimelineEntries(from data: WidgetCurriculumData) -> [ClassEntry] {
         if data.holidayMode == true {
             return [ClassEntry(date: Date(), hasClass: false,
-                className: "假期快乐，祝你天天开心～",
+                className: "假期愉快，要天天开心呀～",
                 timeRange: "", location: "", teacher: "")]
         }
 
@@ -118,7 +118,7 @@ struct Provider: TimelineProvider {
         guard let allClasses = data.allClasses,
               let allPeriods = data.allPeriods else {
             return [ClassEntry(date: now, hasClass: false,
-                className: "数据不完整", timeRange: "请打开App刷新", location: "", teacher: "")]
+                className: "数据不完整", timeRange: "", location: "", teacher: "")]
         }
 
         if (data.termSeason ?? 1) >= 3
@@ -126,7 +126,7 @@ struct Provider: TimelineProvider {
             || data.summerTermStartDay == nil {
             return [ClassEntry(date: now, hasClass: false,
                 className: "未设定小学期起始日",
-                timeRange: "请打开App在设置中设定", location: "", teacher: "")]
+                timeRange: "", location: "", teacher: "")]
         }
 
         let isSummerTerm = (data.termSeason ?? 1) >= 3
@@ -162,8 +162,8 @@ struct Provider: TimelineProvider {
         if todayClasses.isEmpty {
             let isWeekend = todayWeekday >= 6
             return [ClassEntry(date: now, hasClass: false,
-                className: isWeekend ? "周末愉快～" : "今日无课",
-                timeRange: isWeekend ? "" : "好好休息吧~", location: "", teacher: "")]
+                className: isWeekend ? "周末愉快～" : "啊？今天一节课都没有！",
+                timeRange: isWeekend ? "" : "", location: "", teacher: "")]
         }
 
         struct TimedClass {
@@ -184,7 +184,7 @@ struct Provider: TimelineProvider {
 
         if timedClasses.isEmpty {
             return [ClassEntry(date: now, hasClass: false,
-                className: "今日无课", timeRange: "", location: "", teacher: "")]
+                className: "啊？今天一节课都没有！", timeRange: "", location: "", teacher: "")]
         }
 
         var entries: [ClassEntry] = []
@@ -220,7 +220,7 @@ struct Provider: TimelineProvider {
                         teacher: next.item.teacherName ?? ""))
                 } else {
                     entries.append(ClassEntry(date: tc.end, hasClass: false,
-                        className: "今日课毕", timeRange: "好好休息吧~",
+                        className: "今天的课都上完啦～", timeRange: "",
                         location: "", teacher: ""))
                 }
             }
@@ -252,8 +252,8 @@ struct Provider: TimelineProvider {
         if todayClasses.isEmpty {
             let isWeekend = todayWeekday >= 6
             return ClassEntry(date: date, hasClass: false,
-                className: isWeekend ? "周末愉快～" : "今日无课",
-                timeRange: isWeekend ? "" : "好好休息吧~", location: "", teacher: "")
+                className: isWeekend ? "周末愉快～" : "啊？今天一节课都没有！",
+                timeRange: isWeekend ? "" : "", location: "", teacher: "")
         }
 
         struct TimedClass {
@@ -274,7 +274,7 @@ struct Provider: TimelineProvider {
 
         if timedClasses.isEmpty {
             return ClassEntry(date: date, hasClass: false,
-                className: "今日无课", timeRange: "", location: "", teacher: "")
+                className: "啊？今天一节课都没有！", timeRange: "", location: "", teacher: "")
         }
 
         var currentClass: TimedClass?
@@ -308,7 +308,7 @@ struct Provider: TimelineProvider {
         }
 
         return ClassEntry(date: date, hasClass: false,
-            className: "今日课毕", timeRange: "好好休息吧~",
+            className: "今天的课都上完啦～", timeRange: "",
             location: "", teacher: "")
     }
 

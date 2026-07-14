@@ -143,6 +143,12 @@ class ServiceProvider extends ChangeNotifier {
       return cachedData;
     }
 
+    final appSettings =
+        storeService.getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    if (appSettings?.holidayMode == true || appSettings?.examMode == true) {
+      return null;
+    }
+
     if (!coursesService.isOnline) {
       return null;
     }

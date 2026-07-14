@@ -180,6 +180,12 @@ class _HomePageState extends State<HomePage>
     return prefs?.examMode ?? false;
   }
 
+  bool _getHolidayModeEnabled() {
+    final prefs = serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    return prefs?.holidayMode ?? false;
+  }
+
   void _loadExamData() {
     final cached = serviceProvider.storeService.getPref<CachedExamList>(
       'cached_exams',
@@ -202,7 +208,21 @@ class _HomePageState extends State<HomePage>
         final newOngoingClass = curriculumData?.getClassOngoing();
         final newUpcomingClass = curriculumData?.getClassUpcoming();
 
-        WidgetUpdater().updateFromCurriculum(curriculumData);
+        if (curriculumData != null) {
+          WidgetUpdater().updateFromCurriculum(curriculumData);
+        } else if (_getHolidayModeEnabled()) {
+          WidgetUpdater().updateHoliday();
+        } else if (_getExamModeEnabled()) {
+          final cachedExams = serviceProvider.storeService.getPref<CachedExamList>(
+            'cached_exams',
+            CachedExamList.fromJson,
+          );
+          if (cachedExams != null) {
+            WidgetUpdater().updateExams(cachedExams.exams);
+          }
+        } else {
+          WidgetUpdater().updateFromCurriculum(null);
+        }
 
         if (_ongoingClass != newOngoingClass ||
             _upcomingClass != newUpcomingClass ||
