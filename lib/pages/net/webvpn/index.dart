@@ -172,6 +172,7 @@ class _WebVpnPageState extends State<WebVpnPage> {
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest,

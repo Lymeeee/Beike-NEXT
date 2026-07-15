@@ -1,6 +1,7 @@
 // Copyright (c) 2025, Harry Huang
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'services/provider.dart';
 import 'types/preferences.dart';
@@ -14,6 +15,12 @@ void main() async {
   await MetaInfo.instance.initialize();
   // Initialize service provider
   await ServiceProvider.instance.initializeServices();
+
+  // Transparent status bar, let system decide icon brightness
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+  ));
+
   runApp(const Main());
 }
 
@@ -69,11 +76,14 @@ class _MainState extends State<Main> {
     _themeMode = appSettings?.themeMode ?? ThemeMode.system;
     _accentColor = appSettings?.accentColor;
 
+    _updateStatusBarStyle(_themeMode);
+
     ThemeManager.initialize(
       _themeMode,
       _accentColor,
       (ThemeMode themeMode) {
         setState(() => _themeMode = themeMode);
+        _updateStatusBarStyle(themeMode);
         _persistSettings();
       },
       (Color? accentColor) {
@@ -81,6 +91,21 @@ class _MainState extends State<Main> {
         _persistSettings();
       },
     );
+  }
+
+  void _updateStatusBarStyle(ThemeMode mode) {
+    final bool isDark = switch (mode) {
+      ThemeMode.dark => true,
+      ThemeMode.light => false,
+      ThemeMode.system =>
+        WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+            Brightness.dark,
+    };
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
+    ));
   }
 
   void _persistSettings() {

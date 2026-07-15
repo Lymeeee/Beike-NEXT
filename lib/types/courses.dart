@@ -361,7 +361,7 @@ class CurriculumIntegratedData extends BaseDataClass {
   final List<ClassItem> allClasses;
   final List<ClassPeriod> allPeriods;
   final List<CalendarDay>? calendarDays;
-  DateTime? summerTermStartDate; // from AppSettings, set by provider
+  DateTime? summerTermStartDate; // set via settings page, persisted in curriculum_data
 
   CurriculumIntegratedData({
     required this.currentTerm,

@@ -683,25 +683,24 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   String? _getSummerTermStartDate() {
-    final prefs = _serviceProvider.storeService
-        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    return prefs?.summerTermStartDate;
+    final data = _serviceProvider.storeService
+        .getConfig<CurriculumIntegratedData>(
+            'curriculum_data', CurriculumIntegratedData.fromJson);
+    final dt = data?.summerTermStartDate;
+    if (dt == null) return null;
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
-  void _setSummerTermStartDate(String? date) {
-    final existing = _serviceProvider.storeService
-        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    final updated = AppSettings(
-      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
-      accentColorValue:
-          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
-      holidayMode: existing?.holidayMode ?? false,
-      hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
-      examMode: existing?.examMode ?? false,
-      summerTermStartDate: date,
-    );
-    _serviceProvider.storeService.putPref<AppSettings>(
-        'app_settings', updated);
+  void _setSummerTermStartDate(DateTime date) {
+    final data = _serviceProvider.storeService
+        .getConfig<CurriculumIntegratedData>(
+            'curriculum_data', CurriculumIntegratedData.fromJson);
+    if (data != null) {
+      data.summerTermStartDate = date;
+      _serviceProvider.storeService.putConfig<CurriculumIntegratedData>(
+          'curriculum_data', data);
+      WidgetUpdater().updateFromCurriculum(data);
+    }
     _serviceProvider.notifySettingsChanged();
     setState(() {});
   }
@@ -727,17 +726,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (picked != null) {
-      final iso =
-          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-      _setSummerTermStartDate(iso);
-      // Refresh cached curriculum and widget with new start date
-      _serviceProvider.getCurriculumData().then((data) {
-        if (data != null) {
-          data.summerTermStartDate = DateTime.tryParse(iso);
-          WidgetUpdater().updateFromCurriculum(data);
-        }
-      });
-      _serviceProvider.notifySettingsChanged();
+      _setSummerTermStartDate(picked);
     }
   }
 

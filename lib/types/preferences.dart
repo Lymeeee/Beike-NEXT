@@ -182,7 +182,6 @@ class AppSettings extends BaseDataClass {
   bool holidayMode;
   bool hapticFeedbackEnabled;
   bool examMode;
-  String? summerTermStartDate; // "YYYY-MM-DD" format
 
   AppSettings({
     required this.themeMode,
@@ -190,7 +189,6 @@ class AppSettings extends BaseDataClass {
     this.holidayMode = false,
     this.hapticFeedbackEnabled = true,
     this.examMode = false,
-    this.summerTermStartDate,
   });
 
   Color? get accentColor =>
@@ -203,7 +201,6 @@ class AppSettings extends BaseDataClass {
     'holidayMode': holidayMode,
     'hapticFeedbackEnabled': hapticFeedbackEnabled,
     'examMode': examMode,
-    'summerTermStartDate': summerTermStartDate,
   };
 
   static final AppSettings defaultSettings = AppSettings(
