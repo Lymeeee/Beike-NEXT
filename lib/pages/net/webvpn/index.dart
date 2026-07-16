@@ -86,29 +86,42 @@ class _WebVpnPageState extends State<WebVpnPage> {
                       controller: _rawController,
                       maxLines: null,
                       decoration: InputDecoration(
-                        hintText: "输入后按回车转换（别忘了前面的https://呦）",
+                        hintText: "输入后点击转换（别忘了前面的https://呦）",
                         hintMaxLines: 2,
                         errorText: _rawError,
                       ),
-                      onSubmitted: _onRawSubmit,
                     ),
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          Haptics.light();
-                          if (_rawController.text.isNotEmpty) {
-                            Clipboard.setData(
-                              ClipboardData(text: _rawController.text),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('已复制原始网址')),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.copy, size: 16),
-                        label: const Text('复制'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () {
+                              Haptics.light();
+                              if (_rawController.text.isNotEmpty) {
+                                Clipboard.setData(
+                                  ClipboardData(text: _rawController.text),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('已复制原始网址')),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: const Text('复制'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            onPressed: () {
+                              Haptics.light();
+                              _onRawSubmit(_rawController.text);
+                            },
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: const Text('转换'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -140,29 +153,42 @@ class _WebVpnPageState extends State<WebVpnPage> {
                       controller: _vpnController,
                       maxLines: null,
                       decoration: InputDecoration(
-                        hintText: '输入WebVPN网址后按回车转换',
+                        hintText: '输入WebVPN网址后点击转换',
                         hintMaxLines: 2,
                         errorText: _vpnError,
                       ),
-                      onSubmitted: _onVpnSubmit,
                     ),
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          Haptics.light();
-                          if (_vpnController.text.isNotEmpty) {
-                            Clipboard.setData(
-                              ClipboardData(text: _vpnController.text),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('已复制WebVPN网址')),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.copy, size: 16),
-                        label: const Text('复制'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () {
+                              Haptics.light();
+                              if (_vpnController.text.isNotEmpty) {
+                                Clipboard.setData(
+                                  ClipboardData(text: _vpnController.text),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('已复制WebVPN网址')),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: const Text('复制'),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            onPressed: () {
+                              Haptics.light();
+                              _onVpnSubmit(_vpnController.text);
+                            },
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: const Text('转换'),
+                          ),
+                        ],
                       ),
                     ),
                   ],
