@@ -126,7 +126,7 @@ class _NetDeviceShowDialogState extends State<NetDeviceShowDialog> {
             theme,
             'MAC 地址',
             displayMac,
-            isMonospace: true,
+            isMonospace: false,
             trailing: IconButton(
               icon: const Icon(Icons.copy),
               iconSize: 16,

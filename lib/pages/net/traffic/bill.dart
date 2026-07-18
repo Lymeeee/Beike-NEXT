@@ -29,7 +29,7 @@ class _NetMonthlyBillSectionState extends State<NetMonthlyBillSection> {
     final theme = Theme.of(context);
     return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

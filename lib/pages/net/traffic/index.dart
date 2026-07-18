@@ -9,7 +9,6 @@ import '/utils/page_mixins.dart';
 import '/utils/sync_embeded.dart';
 import 'dialog_device_show.dart';
 import 'bill.dart';
-import 'dial.dart';
 import '/utils/haptic.dart';
 
 class NetTrafficPage extends StatefulWidget {
@@ -184,19 +183,6 @@ class _NetTrafficPageState extends State<NetTrafficPage>
     }
   }
 
-  void _showDialDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        contentPadding: EdgeInsets.zero,
-        content: SizedBox(
-          width: 420,
-          child: NetDialDrawer(),
-        ),
-      ),
-    );
-  }
-
   void _clearRealtimeTrafficState() {
     _trackedSessionById.clear();
     _sessionTrafficActiveById.clear();
@@ -293,14 +279,14 @@ class _NetTrafficPageState extends State<NetTrafficPage>
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (hasError)
                   Card.filled(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       child: Row(
                         children: [
                           Icon(
@@ -360,18 +346,6 @@ class _NetTrafficPageState extends State<NetTrafficPage>
                     isLoading: _isLoading,
                   ),
                 ],
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () {
-                      Haptics.selection();
-                      _showDialDialog();
-                    },
-                    icon: const Icon(Icons.speed, size: 18),
-                    label: const Text('网络拨测'),
-                  ),
-                ),
               ],
             ),
           ),
@@ -383,7 +357,7 @@ class _NetTrafficPageState extends State<NetTrafficPage>
   Widget _buildLoginGuideCard(ThemeData theme) {
     return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -489,7 +463,6 @@ class NetOnlineSessionSection extends StatelessWidget {
                 Text(
                   displayMac,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontFamily: 'monospace',
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -533,7 +506,7 @@ class NetOnlineSessionSection extends StatelessWidget {
 
     return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -686,7 +659,7 @@ class NetRealtimeTrafficSection extends StatelessWidget {
 
     return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

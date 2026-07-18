@@ -106,7 +106,7 @@ class NetOnlineDeviceShowDialog extends StatelessWidget {
                 theme,
                 'MAC 地址',
                 mac,
-                isMonospace: true,
+                isMonospace: false,
                 trailing: IconButton(
                   icon: const Icon(Icons.copy),
                   iconSize: 16,

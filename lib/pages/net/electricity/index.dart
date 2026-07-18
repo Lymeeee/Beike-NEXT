@@ -98,34 +98,39 @@ class _ElectricityPageState extends State<ElectricityPage>
     return Scaffold(
       appBar: PageAppBar(title: '电费查询'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInputSection(),
-            if (hasError) _buildErrorCard(),
+            if (hasError) ...[
+              const SizedBox(height: 20),
+              _buildErrorCard(),
+            ],
             if (isLoading) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               const Center(child: CircularProgressIndicator()),
             ] else ...[
               if (_hasQueried && _history.isNotEmpty) ...[
-                const SizedBox(height: 16),
                 _buildCurrentCard(),
                 if (_message != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    _message!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      _message!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
                 if (_history.length >= 2) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   _buildChart(),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 _buildHistoryTable(),
               ],
             ],
@@ -136,9 +141,9 @@ class _ElectricityPageState extends State<ElectricityPage>
   }
 
   Widget _buildInputSection() {
-    return Card(
+    return Card.filled(margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -178,10 +183,10 @@ class _ElectricityPageState extends State<ElectricityPage>
   }
 
   Widget _buildErrorCard() {
-    return Card(
+    return Card.filled(margin: EdgeInsets.zero,
       color: Theme.of(context).colorScheme.errorContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Row(
           children: [
             Icon(Icons.error_outline,
@@ -209,10 +214,12 @@ class _ElectricityPageState extends State<ElectricityPage>
     final last = _history.last;
     final theme = Theme.of(context);
 
-    return Card(
-      color: theme.colorScheme.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.primaryContainer,
+      ),
+      padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             Text(
@@ -243,7 +250,6 @@ class _ElectricityPageState extends State<ElectricityPage>
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -258,9 +264,9 @@ class _ElectricityPageState extends State<ElectricityPage>
       );
     }).toList();
 
-    return Card(
+    return Card.filled(margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -388,9 +394,9 @@ class _ElectricityPageState extends State<ElectricityPage>
     final theme = Theme.of(context);
     final reversed = _history.reversed.toList();
 
-    return Card(
+    return Card.filled(margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

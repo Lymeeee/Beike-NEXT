@@ -13,9 +13,6 @@ import android.os.SystemClock
 import android.widget.RemoteViews
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import java.util.Calendar
 
 class UpcomingClassWidget : AppWidgetProvider() {
@@ -24,7 +21,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
         private const val PREFS_NAME = "com.lyme.beikenext.widget"
         private const val KEY_LEGACY = "upcoming_class_data"
         private const val KEY_FULL_DATA = "curriculum_full_data"
-        private const val KEY_LAST_UPDATE = "curriculum_last_update"
         private const val REFRESH_INTERVAL_MS = 5 * 60 * 1000L
         private const val ACTION_AUTO_REFRESH = "com.lyme.beikenext.AUTO_REFRESH"
 
@@ -47,7 +43,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit()
                 .putString(KEY_FULL_DATA, json)
-                .putLong(KEY_LAST_UPDATE, System.currentTimeMillis())
                 .apply()
             scheduleWorkManagerRefresh(context)
         }
@@ -201,17 +196,9 @@ class UpcomingClassWidget : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val json = prefs.getString(KEY_FULL_DATA, null)
 
-            // Show last update time
-            val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0)
-            val lastUpdateText = if (lastUpdate > 0) {
-                val sdf = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
-                "更新于 ${sdf.format(Date(lastUpdate))}"
-            } else null
-
             if (json == null) {
                 hideAllFields(views)
                 views.setTextViewText(R.id.class_name_text, "等待数据同步…")
-                if (lastUpdateText != null) views.setTextViewText(R.id.update_text, lastUpdateText)
                 attachClickIntent(context, views)
                 return
             }
@@ -234,10 +221,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
 
                 if (data.optBoolean("examMode", false)) {
                     renderExamInfo(data, views)
-                    if (lastUpdateText != null) {
-                        views.setInt(R.id.update_text, "setVisibility", 0x00000000)
-                        views.setTextViewText(R.id.update_text, lastUpdateText)
-                    }
                     attachClickIntent(context, views)
                     return
                 }
@@ -311,10 +294,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
                         if (isWeekend) "周末愉快～" else "啊？今天一节课都没有！")
                     views.setInt(R.id.location_text, "setVisibility", 0x00000008)
                     views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
-                    if (lastUpdateText != null) {
-                        views.setInt(R.id.update_text, "setVisibility", 0x00000000)
-                        views.setTextViewText(R.id.update_text, lastUpdateText)
-                    }
                 } else {
                     renderClassInfo(calendar, allPeriods, todayClasses, views)
                 }
@@ -324,7 +303,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
             } catch (e: Exception) {
                 hideAllFields(views)
                 views.setTextViewText(R.id.class_name_text, "数据解析失败")
-                if (lastUpdateText != null) views.setTextViewText(R.id.update_text, lastUpdateText)
                 attachClickIntent(context, views)
             }
         }
@@ -362,7 +340,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
             views.setInt(R.id.time_text, "setVisibility", 0x00000008)
             views.setInt(R.id.location_text, "setVisibility", 0x00000008)
             views.setInt(R.id.teacher_text, "setVisibility", 0x00000008)
-            views.setInt(R.id.update_text, "setVisibility", 0x00000008)
         }
 
         private fun renderClassInfo(

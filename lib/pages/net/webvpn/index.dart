@@ -63,14 +63,14 @@ class _WebVpnPageState extends State<WebVpnPage> {
     return Scaffold(
       appBar: PageAppBar(title: 'WebVPN'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
             Card.filled(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -136,7 +136,7 @@ class _WebVpnPageState extends State<WebVpnPage> {
             const SizedBox(height: 16),
             Card.filled(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

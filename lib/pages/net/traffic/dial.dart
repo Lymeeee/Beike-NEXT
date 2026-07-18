@@ -236,7 +236,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
     return Card.filled(
       key: const ValueKey('placeholder'),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -272,7 +272,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
     return Card.filled(
       key: const ValueKey('success'),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -387,7 +387,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
     return Card.filled(
       key: const ValueKey('error'),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

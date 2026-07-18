@@ -11,6 +11,7 @@ import 'dialog_device_show.dart';
 import 'dialog_device_add.dart';
 import 'dialog_plan_show.dart';
 import 'dialog_change_max_consume.dart';
+import '/pages/net/traffic/dial.dart';
 import '/utils/haptic.dart';
 
 class NetDashboardPage extends StatefulWidget {
@@ -181,6 +182,19 @@ class _NetDashboardPageState extends State<NetDashboardPage>
     await showDialog(
       context: context,
       builder: (context) => NetPlanShowDialog(userInfo: _userInfo!),
+    );
+  }
+
+  void _showDialDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        content: SizedBox(
+          width: 420,
+          child: NetDialDrawer(),
+        ),
+      ),
     );
   }
 
@@ -378,14 +392,14 @@ class _NetDashboardPageState extends State<NetDashboardPage>
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (hasError)
                   Card.filled(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       child: Row(
                         children: [
                           Icon(
@@ -440,7 +454,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
   Widget _buildLoginPromptCard(ThemeData theme) {
     return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -495,7 +509,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -646,6 +660,12 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                     '修改密码',
                     (_isLoggingOut ? null : _showChangePasswordDialog)
                         as VoidCallback?,
+                  ),
+                  (
+                    Icons.speed,
+                    '拨测',
+                    '网络诊断',
+                    _showDialDialog as VoidCallback?,
                   ),
                 ];
 
@@ -949,7 +969,7 @@ class _NetDashboardPageState extends State<NetDashboardPage>
   Widget _buildMacListCard(ThemeData theme) {
     return Card.filled(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1068,7 +1088,6 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                     Text(
                       displayMac,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontFamily: 'monospace',
                         fontWeight: FontWeight.w500,
                       ),
                     ),
