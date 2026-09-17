@@ -56,6 +56,12 @@ struct WidgetCurriculumData: Codable {
     let examRoom: String?
 }
 
+private struct TimedClass {
+    let item: WidgetClassItem
+    let start: Date
+    let end: Date
+}
+
 // MARK: - Timeline Provider
 
 struct Provider: TimelineProvider {
@@ -210,13 +216,6 @@ struct Provider: TimelineProvider {
                 timeRange: isWeekend ? "" : "", location: "", teacher: "")]
         }
 
-        // Compute start/end Date for each class
-        struct TimedClass {
-            let item: WidgetClassItem
-            let start: Date
-            let end: Date
-        }
-
         let timedClasses: [TimedClass] = todayClasses.compactMap { item in
             guard let start = computeDate(for: item, periods: allPeriods,
                                           on: todayStart, useEnd: false),
@@ -242,12 +241,7 @@ struct Provider: TimelineProvider {
         // At each class start: show ongoing
         for tc in timedClasses {
             if now < tc.start {
-                let endStr = formatTime(tc.end)
-                entries.append(ClassEntry(date: tc.start, hasClass: true,
-                    className: tc.item.className,
-                    timeRange: "进行中 - \(endStr)",
-                    location: tc.item.locationName ?? "",
-                    teacher: tc.item.teacherName ?? ""))
+                entries.append(makeClassEntry(at: tc.start, for: tc, in: timedClasses))
             }
         }
 
@@ -255,14 +249,7 @@ struct Provider: TimelineProvider {
         for (i, tc) in timedClasses.enumerated() {
             if now < tc.end {
                 if i + 1 < timedClasses.count {
-                    let next = timedClasses[i + 1]
-                    let startStr = formatTime(next.start)
-                    let endStr = formatTime(next.end)
-                    entries.append(ClassEntry(date: tc.end, hasClass: true,
-                        className: next.item.className,
-                        timeRange: "\(startStr) - \(endStr)",
-                        location: next.item.locationName ?? "",
-                        teacher: next.item.teacherName ?? ""))
+                    entries.append(makeClassEntry(at: tc.end, for: timedClasses[i + 1], in: timedClasses))
                 } else {
                     entries.append(ClassEntry(date: tc.end, hasClass: false,
                         className: "今天的课都上完啦～", timeRange: "",
@@ -303,12 +290,6 @@ struct Provider: TimelineProvider {
                 timeRange: isWeekend ? "" : "", location: "", teacher: "")
         }
 
-        struct TimedClass {
-            let item: WidgetClassItem
-            let start: Date
-            let end: Date
-        }
-
         let timedClasses: [TimedClass] = todayClasses.compactMap { item in
             guard let start = computeDate(for: item, periods: allPeriods,
                                           on: todayStart, useEnd: false),
@@ -337,22 +318,11 @@ struct Provider: TimelineProvider {
         }
 
         if let ongoing = currentClass {
-            let endStr = formatTime(ongoing.end)
-            return ClassEntry(date: date, hasClass: true,
-                className: ongoing.item.className,
-                timeRange: "进行中 - \(endStr)",
-                location: ongoing.item.locationName ?? "",
-                teacher: ongoing.item.teacherName ?? "")
+            return makeClassEntry(at: date, for: ongoing, in: timedClasses)
         }
 
         if let upcoming = nextClass {
-            let startStr = formatTime(upcoming.start)
-            let endStr = formatTime(upcoming.end)
-            return ClassEntry(date: date, hasClass: true,
-                className: upcoming.item.className,
-                timeRange: "\(startStr) - \(endStr)",
-                location: upcoming.item.locationName ?? "",
-                teacher: upcoming.item.teacherName ?? "")
+            return makeClassEntry(at: date, for: upcoming, in: timedClasses)
         }
 
         return ClassEntry(date: date, hasClass: false,
@@ -361,6 +331,26 @@ struct Provider: TimelineProvider {
     }
 
     // MARK: - Helpers
+
+    private func makeClassEntry(at date: Date, for timedClass: TimedClass,
+                                in timedClasses: [TimedClass]) -> ClassEntry {
+        let startStr = formatTime(timedClass.start)
+        let endStr = formatTime(timedClass.end)
+        let distinctNames = Set(timedClasses
+            .filter { $0.start == timedClass.start && $0.end == timedClass.end }
+            .map { $0.item.className })
+        if distinctNames.count >= 2 {
+            return ClassEntry(date: date, hasClass: true,
+                className: "该时段有两门课程，请确认",
+                timeRange: "\(startStr) - \(endStr)",
+                location: "", teacher: "")
+        }
+        return ClassEntry(date: date, hasClass: true,
+            className: timedClass.item.className,
+            timeRange: "\(startStr) - \(endStr)",
+            location: timedClass.item.locationName ?? "",
+            teacher: timedClass.item.teacherName ?? "")
+    }
 
     private func computeSummerWeekIndex(year: Int, month: Int, day: Int) -> Int {
         let calendar = Calendar.current

@@ -431,27 +431,27 @@ class UpcomingClassWidget : AppWidgetProvider() {
 
             val target = currentClass ?: nextClass
             if (target != null) {
-                val label = if (currentClass != null) "进行中" else "接下来"
-                val timeRange = if (currentClass != null) {
-                    "进行中 - ${formatTime(target.endMinute)}"
-                } else {
-                    "${formatTime(target.startMinute)} - ${formatTime(target.endMinute)}"
-                }
+                val conflict = timedClasses
+                    .filter { it.startMinute == target.startMinute && it.endMinute == target.endMinute }
+                    .map { it.className }
+                    .distinct()
+                    .size >= 2
 
-                views.setInt(R.id.label_text, "setVisibility", 0x00000000)
-                views.setTextViewText(R.id.label_text, label)
+                views.setInt(R.id.label_text, "setVisibility", 0x00000008)
                 views.setInt(R.id.time_text, "setVisibility", 0x00000000)
-                views.setTextViewText(R.id.class_name_text, target.className)
-                views.setTextViewText(R.id.time_text, timeRange)
+                views.setTextViewText(R.id.class_name_text,
+                    if (conflict) "该时段有两门课程，请确认" else target.className)
+                views.setTextViewText(R.id.time_text,
+                    "${formatTime(target.startMinute)} - ${formatTime(target.endMinute)}")
 
-                if (target.locationName.isNotEmpty()) {
+                if (!conflict && target.locationName.isNotEmpty()) {
                     views.setInt(R.id.location_text, "setVisibility", 0x00000000)
                     views.setTextViewText(R.id.location_text, target.locationName)
                 } else {
                     views.setInt(R.id.location_text, "setVisibility", 0x00000008)
                 }
 
-                if (target.teacherName.isNotEmpty()) {
+                if (!conflict && target.teacherName.isNotEmpty()) {
                     views.setInt(R.id.teacher_text, "setVisibility", 0x00000000)
                     views.setTextViewText(R.id.teacher_text, target.teacherName)
                 } else {

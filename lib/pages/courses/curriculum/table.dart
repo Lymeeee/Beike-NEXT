@@ -348,7 +348,9 @@ class CurriculumTable extends StatelessWidget {
 
     final classColors = classesInSlot.isEmpty
         ? null
-        : _getClassColors(context, classesInSlot.first);
+        : classesInSlot.length >= 2
+            ? _getMultiClassColors(context)
+            : _getClassColors(context, classesInSlot.first);
 
     return Container(
       height: cellHeight,
@@ -385,6 +387,10 @@ class CurriculumTable extends StatelessWidget {
     CurriculumSettings settings,
     Color foregroundColor,
   ) {
+    if (classesInSlot.length >= 2) {
+      return _buildMultiClassContent(context, classesInSlot, foregroundColor);
+    }
+
     final maxLines = switch (settings.tableSize) {
       TableSize.small => 2,
       TableSize.medium => 3,
@@ -416,7 +422,6 @@ class CurriculumTable extends StatelessWidget {
                 child: _buildClassContentInner(
                   context,
                   firstClass,
-                  classesInSlot,
                   maxLines,
                   foregroundColor,
                 ),
@@ -428,11 +433,58 @@ class CurriculumTable extends StatelessWidget {
                 child: _buildClassContentInner(
                   context,
                   firstClass,
-                  classesInSlot,
                   maxLines,
                   foregroundColor,
                 ),
               ),
+      ),
+    );
+  }
+
+  Widget _buildMultiClassContent(
+    BuildContext context,
+    List<ClassItem> classesInSlot,
+    Color foregroundColor,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: Column(
+        children: [
+          for (var i = 0; i < classesInSlot.length; i++) ...[
+            if (i > 0)
+              Container(
+                height: 1,
+                color: foregroundColor.withValues(alpha: 0.3),
+              ),
+            Expanded(
+              child: InkWell(
+                onTap: () {
+                  Haptics.selection();
+                  _showClassDetails(context, classesInSlot[i]);
+                },
+                splashColor: foregroundColor.withValues(alpha: 0.15),
+                highlightColor: foregroundColor.withValues(alpha: 0.08),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
+                    child: Text(
+                      classesInSlot[i].className.replaceAll('\n', ' '),
+                      style: TextStyle(
+                        fontSize: 11,
+                        height: 1.15,
+                        fontWeight: FontWeight.bold,
+                        color: foregroundColor,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -448,7 +500,6 @@ class CurriculumTable extends StatelessWidget {
   Widget _buildClassContentInner(
     BuildContext context,
     ClassItem firstClass,
-    List<ClassItem> classesInSlot,
     int maxLines,
     Color foregroundColor,
   ) {
@@ -478,13 +529,6 @@ class CurriculumTable extends StatelessWidget {
             maxLines: locationMaxLines,
           ),
         ],
-        if (classesInSlot.length > 1) ...[
-          const SizedBox(height: 1),
-          Text(
-            '+${classesInSlot.length - 1}',
-            style: TextStyle(fontSize: 9, height: 1.2, color: foregroundColor.withValues(alpha: 0.7)),
-          ),
-        ],
       ],
     );
   }
@@ -492,6 +536,11 @@ class CurriculumTable extends StatelessWidget {
   ({Color background, Color foreground}) _getClassColors(BuildContext context, ClassItem classItem) {
     final scheme = Theme.of(context).colorScheme;
     return (background: scheme.primaryContainer, foreground: scheme.onPrimaryContainer);
+  }
+
+  ({Color background, Color foreground}) _getMultiClassColors(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return (background: scheme.primary, foreground: scheme.onPrimary);
   }
 
   List<_MajorPeriodInfo> _getMajorPeriods(List<ClassPeriod> periods) {

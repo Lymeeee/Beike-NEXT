@@ -11,13 +11,6 @@ struct UpcomingClassWidgetEntryView: View {
                     .foregroundColor(.primary)
                     .lineLimit(2)
 
-                if !entry.timeRange.isEmpty {
-                    Text(entry.timeRange)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .padding(.top, 3)
-                }
-
                 if !entry.location.isEmpty || !entry.teacher.isEmpty {
                     HStack(spacing: 10) {
                         if !entry.location.isEmpty {
@@ -34,6 +27,13 @@ struct UpcomingClassWidgetEntryView: View {
                         }
                     }
                     .padding(.top, 3)
+                }
+
+                if !entry.timeRange.isEmpty {
+                    Text(entry.timeRange)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .padding(.top, 3)
                 }
             } else {
                 Text(entry.className)

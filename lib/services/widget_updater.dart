@@ -9,6 +9,12 @@ class WidgetUpdater {
   factory WidgetUpdater() => _instance;
   WidgetUpdater._internal();
 
+  static final _campusPattern = RegExp(r'【[^】]*】');
+
+  // 校区名以中文中括号包裹，小组件中不展示
+  static String _stripCampus(String location) =>
+      location.replaceAll(_campusPattern, '').trim();
+
   void updateFromCurriculum(CurriculumIntegratedData? data,
       {List<ClassItem>? customCourses}) {
     final payload = <String, dynamic>{
@@ -26,13 +32,17 @@ class WidgetUpdater {
         payload['summerTermStartDay'] = start.day;
       }
 
-      if (customCourses != null && customCourses.isNotEmpty) {
-        final allClasses = List<Map<String, dynamic>>.from(payload['allClasses']);
-        for (final cc in customCourses) {
-          allClasses.add(cc.toJson());
+      final allClasses = <Map<String, dynamic>>[
+        ...data.allClasses.map((c) => c.toJson()),
+        ...?customCourses?.map((c) => c.toJson()),
+      ];
+      for (final course in allClasses) {
+        final location = course['locationName'];
+        if (location is String && location.isNotEmpty) {
+          course['locationName'] = _stripCampus(location);
         }
-        payload['allClasses'] = allClasses;
       }
+      payload['allClasses'] = allClasses;
     }
 
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));
@@ -78,7 +88,7 @@ class WidgetUpdater {
       payload['examTime'] = displayExam.examTime;
       payload['examDate'] = displayExam.examDateDisplay;
       payload['examDay'] = displayExam.examDayName;
-      payload['examRoom'] = displayExam.examRoom;
+      payload['examRoom'] = _stripCampus(displayExam.examRoom);
     }
 
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));

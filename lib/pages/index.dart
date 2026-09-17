@@ -620,26 +620,48 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  List<ClassItem> _getSlotClasses(ClassItem target) {
+    final data = _curriculumData;
+    if (data == null) return [target];
+    return data
+        .getClassesToday()
+        .where((classItem) => classItem.period == target.period)
+        .toList();
+  }
+
   Widget _buildMultipleClassPreviews() {
-    final classes = <ClassItem?>[];
-    if (_ongoingClass != null) classes.add(_ongoingClass);
-    if (_upcomingClass != null) classes.add(_upcomingClass);
+    final previews = <({List<ClassItem> classes, bool isOngoing})>[];
+    if (_ongoingClass != null) {
+      previews.add((classes: _getSlotClasses(_ongoingClass!), isOngoing: true));
+    }
+    if (_upcomingClass != null) {
+      previews.add((classes: _getSlotClasses(_upcomingClass!), isOngoing: false));
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: List.generate(classes.length, (i) {
-          final isOngoing = classes[i] == _ongoingClass;
-          return Padding(
-            padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
-            child: _buildSingleClassPreview(classes[i]!, isOngoing),
-          );
-        }),
+        children: [
+          for (var i = 0; i < previews.length; i++)
+            Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+              child: _buildSingleClassPreview(
+                previews[i].classes,
+                previews[i].isOngoing,
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildSingleClassPreview(ClassItem classItem, bool isOngoing) {
+  Widget _buildSingleClassPreview(List<ClassItem> classes, bool isOngoing) {
+    final classItem = classes.first;
+    final names = classes
+        .map((item) => item.className.replaceAll('\n', ' '))
+        .toSet()
+        .toList();
+    final hasConflict = names.length >= 2;
     final startTime = classItem.getMinStartTime(
       _curriculumData?.allPeriods ?? [],
     );
@@ -681,16 +703,17 @@ class _HomePageState extends State<HomePage>
           children: [
             Text(isOngoing ? '  进行中' : '  接下来', style: textStyle1),
             const SizedBox(height: 4),
-            Text(
-              '  ${classItem.className.replaceAll('\n', ' ')}',
-              style: textStyle2,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            for (final name in names)
+              Text(
+                '  $name',
+                style: textStyle2,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             const SizedBox(height: 2),
             if (periodTimeRange != null)
               Text('  $periodTimeRange', style: textStyle3),
-            if (classItem.locationName.isNotEmpty)
+            if (!hasConflict && classItem.locationName.isNotEmpty)
               Text(classItem.locationName, style: textStyle3),
           ],
         ),
