@@ -309,7 +309,9 @@ class _AccountPageState extends State<AccountPage> {
                           Text(
                             _getLastHeartbeatText()!,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                               fontSize: 12,
                             ),
                           ),
@@ -319,10 +321,12 @@ class _AccountPageState extends State<AccountPage> {
                   // Logout button (only show when logged in)
                   if (!_showLoginButton)
                     OutlinedButton.icon(
-                      onPressed: _isLoading ? null : () {
-                        Haptics.heavy();
-                        _handleLogout();
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Haptics.heavy();
+                              _handleLogout();
+                            },
                       icon: _isLoading
                           ? SizedBox(
                               width: 16,
@@ -338,7 +342,9 @@ class _AccountPageState extends State<AccountPage> {
                       label: Text(_isLoading ? '请稍后' : '登出'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.error,
-                        side: BorderSide(color: Theme.of(context).colorScheme.error),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                     ),
                 ],
@@ -362,7 +368,8 @@ class _AccountPageState extends State<AccountPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant),
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
               ),
               child: Column(
                 children: [
@@ -373,7 +380,7 @@ class _AccountPageState extends State<AccountPage> {
                       size: 32,
                     ),
                     title: const Text('统一身份认证登录'),
-                    subtitle: const Text('推荐方式，使用USTB SSO系统安全便捷登录'),
+                    subtitle: const Text('使用北京科技大学SSO系统'),
                     trailing: const Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       Haptics.selection();
@@ -395,7 +402,10 @@ class _AccountPageState extends State<AccountPage> {
           if (service.isOnline && _userInfo != null) ...[
             Padding(
               padding: const EdgeInsets.only(left: 16),
-              child: Text('个人信息', style: Theme.of(context).textTheme.headlineSmall),
+              child: Text(
+                '个人信息',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
             ),
             const SizedBox(height: 16),
             Card.filled(
@@ -440,7 +450,9 @@ class _AccountPageState extends State<AccountPage> {
                                   _userInfo!.userNameAlt,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                             ],
@@ -482,13 +494,18 @@ class _AccountPageState extends State<AccountPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onErrorContainer),
+                        Icon(
+                          Icons.error_outline,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           '错误信息',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
                           ),
                         ),
                       ],
@@ -496,7 +513,9 @@ class _AccountPageState extends State<AccountPage> {
                     const SizedBox(height: 8),
                     Text(
                       _errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
                     ),
                   ],
                 ),
@@ -536,7 +555,10 @@ class _AccountPageState extends State<AccountPage> {
               if (altValue != null)
                 Text(
                   altValue,
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
             ],
           ),

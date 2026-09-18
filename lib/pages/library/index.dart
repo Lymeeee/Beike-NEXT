@@ -44,8 +44,10 @@ class _LibraryPageState extends State<LibraryPage>
 
   Future<void> _boot() async {
     try {
-      final saved = serviceProvider.storeService
-          .getConfig<LibzwSession>(_sessionKey, LibzwSession.fromJson);
+      final saved = serviceProvider.storeService.getConfig<LibzwSession>(
+        _sessionKey,
+        LibzwSession.fromJson,
+      );
       if (saved != null) {
         await _service.restore(saved);
         // token 可能被刷新过，回写持久化
@@ -188,10 +190,7 @@ class _LibraryPageState extends State<LibraryPage>
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.only(left: 16),
-            child: Text(
-              '登录方式',
-              style: theme.textTheme.headlineSmall,
-            ),
+            child: Text('登录方式', style: theme.textTheme.headlineSmall),
           ),
           const SizedBox(height: 16),
           Card(
@@ -207,7 +206,7 @@ class _LibraryPageState extends State<LibraryPage>
                 size: 32,
               ),
               title: const Text('统一身份认证登录'),
-              subtitle: const Text('推荐方式，扫码登录图书馆选座系统'),
+              subtitle: const Text('使用北京科技大学SSO系统'),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () {
                 Haptics.selection();

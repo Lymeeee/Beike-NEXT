@@ -70,9 +70,138 @@ extension UstbSsoStateExtension on UstbSsoState {
   }
 }
 
+/// SSO 登录引擎：二维码 / 短信两条认证链路的后端抽象，由 [UstbSsoAuthWidget] 驱动
+abstract class SsoAuthEngine {
+  /// 二维码：建立认证管线（打开入口、选择微信授权、请求二维码）
+  Future<void> openQrAuth();
+
+  /// 二维码：获取二维码图片
+  Future<Uint8List> fetchQrImage();
+
+  /// 二维码：等待扫码确认，返回 passCode
+  Future<String> waitForPassCode();
+
+  /// 二维码：用 passCode 完成认证
+  Future<void> completeQrAuth(String passCode);
+
+  /// 短信：建立认证管线
+  Future<void> openSmsAuth();
+
+  /// 短信：向手机号发送验证码
+  Future<void> sendSmsCode(String phoneNumber);
+
+  /// 短信：提交验证码完成认证
+  Future<void> completeSmsAuth(String phoneNumber, String smsCode);
+
+  /// 认证结果，作为 onSuccess 的 response 参数
+  Object? get result;
+
+  /// 认证会话，作为 onSuccess 的 session 参数
+  HttpSession get session;
+
+  /// 底部展示的认证服务域
+  String get footerDomain;
+
+  /// 取消进行中的认证流程
+  void cancel();
+}
+
+/// 基于 ustb_sso 包（oauth2 入口）的 SSO 引擎
+class UstbSsoEngine implements SsoAuthEngine {
+  UstbSsoEngine(this.applicationParam);
+
+  final ApplicationParam applicationParam;
+
+  HttpSession? _session;
+  QrAuthProcedure? _qrAuth;
+  SmsAuthProcedure? _smsAuth;
+  Object? _result;
+  bool _cancelled = false;
+
+  @override
+  Future<void> openQrAuth() async {
+    _session = HttpSession();
+    _qrAuth = QrAuthProcedure(
+      entityId: applicationParam.entityId,
+      redirectUri: applicationParam.redirectUri,
+      state: applicationParam.state,
+      session: _session!,
+    );
+
+    await _qrAuth!.openAuth();
+    await _qrAuth!.useWechatAuth();
+    await _qrAuth!.useQrCode();
+  }
+
+  @override
+  Future<Uint8List> fetchQrImage() => _qrAuth!.getQrImage();
+
+  @override
+  Future<String> waitForPassCode() => _qrAuth!.waitForPassCode();
+
+  @override
+  Future<void> completeQrAuth(String passCode) async {
+    _result = await _qrAuth!.completeQrAuth(passCode);
+  }
+
+  @override
+  Future<void> openSmsAuth() async {
+    _session ??= HttpSession();
+    _smsAuth = SmsAuthProcedure(
+      entityId: applicationParam.entityId,
+      redirectUri: applicationParam.redirectUri,
+      state: applicationParam.state,
+      session: _session!,
+    );
+
+    await _smsAuth!.openAuth();
+  }
+
+  @override
+  Future<void> sendSmsCode(String phoneNumber) async {
+    // 图形验证不通过时自动换题重试
+    var autoRetry = 5;
+    while (true) {
+      try {
+        await _smsAuth!.sendSms(phoneNumber);
+        return;
+      } catch (e) {
+        if (_cancelled || autoRetry < 1 || !'$e'.contains('图形验证不通过')) {
+          rethrow;
+        }
+        autoRetry -= 1;
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
+  }
+
+  @override
+  Future<void> completeSmsAuth(String phoneNumber, String smsCode) async {
+    final token = await _smsAuth!.submitSmsCode(phoneNumber, smsCode);
+    _result = await _smsAuth!.completeSmsAuth(token);
+  }
+
+  @override
+  Object? get result => _result;
+
+  @override
+  HttpSession get session => _session!;
+
+  @override
+  String get footerDomain {
+    final uri = Uri.tryParse(applicationParam.redirectUri);
+    return uri != null && uri.host.isNotEmpty
+        ? uri.host
+        : applicationParam.redirectUri;
+  }
+
+  @override
+  void cancel() => _cancelled = true;
+}
+
 /// USTB SSO Authentication Widget
 class UstbSsoAuthWidget extends StatefulWidget {
-  final ApplicationParam applicationParam;
+  final SsoAuthEngine engine;
 
   final Function(dynamic response, HttpSession session) onSuccess;
 
@@ -82,7 +211,7 @@ class UstbSsoAuthWidget extends StatefulWidget {
 
   const UstbSsoAuthWidget({
     super.key,
-    required this.applicationParam,
+    required this.engine,
     required this.onSuccess,
     this.defaultSmsPhone,
     this.onUpdateSmsPhone,
@@ -102,21 +231,16 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
   late Animation<double> _opacityAnimation;
 
   // QR Code authentication state
-  QrAuthProcedure? _qrAuth;
   Uint8List? _qrImageBytes;
   UstbSsoState _qrState = UstbSsoState.none;
   String? _qrErrorMessage;
 
   // SMS authentication state
-  SmsAuthProcedure? _smsAuth;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _smsCodeController = TextEditingController();
   int _smsCountdown = 0;
   UstbSsoState _smsState = UstbSsoState.none;
   String? _smsErrorMessage;
-
-  // Common authentication
-  HttpSession? _session;
 
   // Current displayed state (based on active tab)
   UstbSsoState get _currentState =>
@@ -229,6 +353,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
 
   @override
   void dispose() {
+    widget.engine.cancel();
     _progressAnimationController.dispose();
     _tabController.dispose();
     _phoneController.dispose();
@@ -311,33 +436,22 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
     try {
       _updateQrState(UstbSsoState.init);
 
-      _session = HttpSession();
-      _qrAuth = QrAuthProcedure(
-        entityId: widget.applicationParam.entityId,
-        redirectUri: widget.applicationParam.redirectUri,
-        state: widget.applicationParam.state,
-        session: _session!,
-      );
-
-      await _qrAuth!.openAuth();
-
       _updateQrState(UstbSsoState.openingAuth);
-      await _qrAuth!.useWechatAuth();
-      await _qrAuth!.useQrCode();
+      await widget.engine.openQrAuth();
 
       _updateQrState(UstbSsoState.fetchingAuth);
-      _qrImageBytes = await _qrAuth!.getQrImage();
+      _qrImageBytes = await widget.engine.fetchQrImage();
 
       _updateQrState(UstbSsoState.solvingAuth);
       // Wait for QR code scanning and confirmation
       try {
-        final passCode = await _qrAuth!.waitForPassCode();
+        final passCode = await widget.engine.waitForPassCode();
 
         _updateQrState(UstbSsoState.authFinishing);
-        final response = await _qrAuth!.completeQrAuth(passCode);
+        await widget.engine.completeQrAuth(passCode);
 
         _updateQrState(UstbSsoState.success);
-        widget.onSuccess(response, _session!);
+        widget.onSuccess(widget.engine.result, widget.engine.session);
       } catch (e) {
         if (mounted) {
           final errorMsg = '$e';
@@ -364,61 +478,27 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
     try {
       _updateSmsState(UstbSsoState.init);
 
-      _session ??= HttpSession();
-      _smsAuth = SmsAuthProcedure(
-        entityId: widget.applicationParam.entityId,
-        redirectUri: widget.applicationParam.redirectUri,
-        state: widget.applicationParam.state,
-        session: _session!,
-      );
-
       _updateSmsState(UstbSsoState.openingAuth);
-      await _smsAuth!.openAuth();
+      await widget.engine.openSmsAuth();
+
+      _updateSmsState(UstbSsoState.fetchingAuth);
+      await widget.engine.sendSmsCode(phoneNumber);
     } catch (e) {
       if (mounted) {
         final errorMsg = '$e';
         _updateSmsState(UstbSsoState.initFailed, errorMessage: errorMsg);
-        return;
       }
+      return;
     }
 
-    int autoRetry = 5;
+    if (!mounted) return;
+    setState(() {
+      _smsCountdown = 60;
+      _smsErrorMessage = null;
+    });
 
-    do {
-      try {
-        _updateSmsState(UstbSsoState.fetchingAuth);
-        await _smsAuth!.sendSms(phoneNumber);
-        break;
-      } catch (e) {
-        if (mounted) {
-          final errorMsg = '$e';
-          if (autoRetry >= 1 && errorMsg.contains('图形验证不通过')) {
-            autoRetry -= 1;
-            await Future.delayed(const Duration(seconds: 1));
-          } else {
-            _updateSmsState(UstbSsoState.initFailed, errorMessage: errorMsg);
-            return;
-          }
-        } else {
-          return;
-        }
-      }
-    } while (autoRetry >= 0);
-
-    try {
-      setState(() {
-        _smsCountdown = 60;
-        _smsErrorMessage = null;
-      });
-
-      _updateSmsState(UstbSsoState.solvingAuth);
-      _startSmsCountdown();
-    } catch (e) {
-      if (mounted) {
-        final errorMsg = '$e';
-        _updateSmsState(UstbSsoState.authFailed, errorMessage: errorMsg);
-      }
-    }
+    _updateSmsState(UstbSsoState.solvingAuth);
+    _startSmsCountdown();
   }
 
   void _startSmsCountdown() {
@@ -443,11 +523,10 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
 
     try {
       _updateSmsState(UstbSsoState.authFinishing);
-      final token = await _smsAuth!.submitSmsCode(phoneNumber, smsCode);
-      final response = await _smsAuth!.completeSmsAuth(token);
+      await widget.engine.completeSmsAuth(phoneNumber, smsCode);
 
       _updateSmsState(UstbSsoState.success);
-      widget.onSuccess(response, _session!);
+      widget.onSuccess(widget.engine.result, widget.engine.session);
     } catch (e) {
       if (mounted) {
         final errorMsg = '$e';
@@ -714,7 +793,12 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
           if (!canInputCode) ...[
             // Full-width send SMS button when no code input needed
             FilledButton(
-              onPressed: canSendSms ? () { Haptics.medium(); _sendSmsCode(); } : null,
+              onPressed: canSendSms
+                  ? () {
+                      Haptics.medium();
+                      _sendSmsCode();
+                    }
+                  : null,
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -757,7 +841,10 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
                 prefixIcon: const Icon(Icons.numbers),
                 suffixIcon: canResendSms
                     ? TextButton(
-                        onPressed: () { Haptics.light(); _sendSmsCode(); },
+                        onPressed: () {
+                          Haptics.light();
+                          _sendSmsCode();
+                        },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           minimumSize: Size.zero,
@@ -793,7 +880,12 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
           // Login button
           if (canInputCode)
             FilledButton(
-              onPressed: canLogin ? () { Haptics.medium(); _submitSmsCode(); } : null,
+              onPressed: canLogin
+                  ? () {
+                      Haptics.medium();
+                      _submitSmsCode();
+                    }
+                  : null,
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -900,7 +992,7 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  _extractDomainFromUri(widget.applicationParam.redirectUri),
+                  widget.engine.footerDomain,
                   style: Theme.of(context).textTheme.bodySmall,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -910,15 +1002,5 @@ class _UstbSsoAuthWidgetState extends State<UstbSsoAuthWidget>
         ],
       ),
     );
-  }
-
-  // Extract domain from redirectUri for footer display
-  String _extractDomainFromUri(String uri) {
-    try {
-      final parsedUri = Uri.parse(uri);
-      return parsedUri.host.isNotEmpty ? parsedUri.host : uri;
-    } catch (e) {
-      return uri;
-    }
   }
 }

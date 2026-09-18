@@ -30,6 +30,7 @@ class _SsoLoginDialog extends StatefulWidget {
 
 class _SsoLoginDialogState extends State<_SsoLoginDialog> {
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
+  final UstbSsoEngine _engine = UstbSsoEngine(Prefabs.byytUstbEduCn);
   bool _isLoggingIn = false;
 
   @override
@@ -155,7 +156,7 @@ class _SsoLoginDialogState extends State<_SsoLoginDialog> {
         children: [
           // Authentication widget
           UstbSsoAuthWidget(
-            applicationParam: Prefabs.byytUstbEduCn,
+            engine: _engine,
             onSuccess: _handleAuthSuccess,
             defaultSmsPhone: defaultSmsPhone,
             onUpdateSmsPhone: _onUpdateSmsPhone,
