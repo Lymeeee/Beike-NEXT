@@ -5,7 +5,6 @@ import '/types/courses.dart';
 import '/types/preferences.dart';
 import '/utils/app_bar.dart';
 import '/services/widget_updater.dart';
-import '/utils/sync_embeded.dart';
 import '/utils/haptic.dart';
 import '/utils/navigation.dart';
 import 'common.dart';
@@ -268,7 +267,7 @@ class _CurriculumPageState extends State<CurriculumPage>
               ]
             : null,
       ),
-      body: SyncPowered(childBuilder: (context) => _buildBody()),
+      body: _buildBody(),
     );
   }
 

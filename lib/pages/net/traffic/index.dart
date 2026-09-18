@@ -6,7 +6,6 @@ import '/pages/net/common/dialog_login.dart';
 import '/types/net.dart';
 import '/utils/app_bar.dart';
 import '/utils/page_mixins.dart';
-import '/utils/sync_embeded.dart';
 import 'dialog_device_show.dart';
 import 'bill.dart';
 import '/utils/haptic.dart';
@@ -268,7 +267,7 @@ class _NetTrafficPageState extends State<NetTrafficPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const PageAppBar(title: '校园网流量查询'),
-      body: SyncPowered(childBuilder: (context) => _buildBody(context)),
+      body: _buildBody(context),
     );
   }
 

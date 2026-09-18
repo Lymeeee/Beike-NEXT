@@ -18,6 +18,7 @@ import 'pages/net/webvpn/index.dart';
 import 'pages/more/settings.dart';
 import 'pages/more/update.dart';
 import 'pages/empty_classroom/index.dart';
+import 'pages/library/index.dart';
 
 class _BottomTab {
   final IconData icon;
@@ -154,6 +155,12 @@ class AppRouter {
         type: _slideRouteType,
         builder: (context, data) =>
             MainLayout(child: const EmptyClassroomPage()),
+      ),
+      NamedRouteDef(
+        name: 'LibraryRoute',
+        path: '/library',
+        type: _slideRouteType,
+        builder: (context, data) => MainLayout(child: const LibraryPage()),
       ),
     ],
   );

@@ -73,6 +73,13 @@ class _HomePageState extends State<HomePage>
 
   late final List<_FeatureCardConfig> _netFeatureCards = [
     _FeatureCardConfig(
+      title: '无课教室',
+      description: '查询空闲自习教室',
+      icon: Icons.meeting_room_outlined,
+      color: (c) => Theme.of(c).colorScheme.primary,
+      route: '/net/empty-classroom',
+    ),
+    _FeatureCardConfig(
       title: '网络服务',
       description: '账户管理和账单查询',
       icon: Icons.wifi,
@@ -102,12 +109,12 @@ class _HomePageState extends State<HomePage>
     ),
   ];
 
-  late final _FeatureCardConfig _emptyClassroomCard = _FeatureCardConfig(
-    title: '无课教室',
-    description: '查询空闲自习教室',
-    icon: Icons.meeting_room_outlined,
+  late final _FeatureCardConfig _libraryCard = _FeatureCardConfig(
+    title: '自习选座',
+    description: '图书馆座位与研修室预约',
+    icon: Icons.local_library,
     color: (c) => Theme.of(c).colorScheme.primary,
-    route: '/net/empty-classroom',
+    route: '/library',
   );
 
   @override
@@ -999,7 +1006,7 @@ class _HomePageState extends State<HomePage>
   Widget _buildNetNarrowLayout() {
     return Column(
       children: [
-        _buildEmptyClassroomCard(context, isWideScreen: false),
+        _buildLibraryCard(context, isWideScreen: false),
         const SizedBox(height: 8),
         ..._netFeatureCards.asMap().entries.expand((entry) {
           final index = entry.key;
@@ -1030,22 +1037,22 @@ class _HomePageState extends State<HomePage>
     final cards = _netFeatureCards;
     return Column(
       children: [
-        _buildEmptyClassroomCard(context, isWideScreen: true),
+        _buildLibraryCard(context, isWideScreen: true),
         const SizedBox(height: 8),
-        SizedBox(
-          height: 120,
-          child: _buildCardRow([cards[0], cards[1]]),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 120,
-          child: _buildCardRow([cards[2], cards[3]]),
-        ),
+        for (var i = 0; i < cards.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 8),
+          SizedBox(
+            height: 120,
+            child: _buildCardRow(
+              cards.sublist(i, i + 2 > cards.length ? cards.length : i + 2),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildEmptyClassroomCard(BuildContext context, {required bool isWideScreen}) {
+  Widget _buildLibraryCard(BuildContext context, {required bool isWideScreen}) {
     final theme = Theme.of(context);
     final iconSize = isWideScreen ? 36.0 : 32.0;
     final iconGap = isWideScreen ? 16.0 : 12.0;
@@ -1058,7 +1065,7 @@ class _HomePageState extends State<HomePage>
       child: InkWell(
         onTap: () {
           Haptics.selection();
-          pushPathGuarded(context, _emptyClassroomCard.route);
+          pushPathGuarded(context, _libraryCard.route);
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -1078,13 +1085,13 @@ class _HomePageState extends State<HomePage>
                     children: [
                       Row(
                         children: [
-                          Icon(_emptyClassroomCard.icon,
+                          Icon(_libraryCard.icon,
                               size: iconSize,
                               color: theme.colorScheme.onPrimaryContainer),
                           SizedBox(width: iconGap),
                           Expanded(
                             child: Text(
-                              _emptyClassroomCard.title,
+                              _libraryCard.title,
                               style: TextStyle(
                                 fontSize: titleFontSize,
                                 fontWeight: FontWeight.bold,
@@ -1096,10 +1103,11 @@ class _HomePageState extends State<HomePage>
                       ),
                       SizedBox(height: titleGap),
                       Text(
-                        _emptyClassroomCard.description,
+                        _libraryCard.description,
                         style: TextStyle(
                           fontSize: descFontSize,
-                          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+                          color: theme.colorScheme.onPrimaryContainer
+                              .withValues(alpha: 0.9),
                         ),
                       ),
                     ],

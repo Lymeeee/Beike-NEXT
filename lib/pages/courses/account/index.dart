@@ -4,8 +4,6 @@ import '/services/base.dart';
 import '/types/courses.dart';
 import '/utils/app_bar.dart';
 import '/utils/haptic.dart';
-import '/utils/sync_embeded.dart';
-import 'ustb_byyt_cookie.dart';
 import 'ustb_byyt_sso.dart';
 
 class AccountPage extends StatefulWidget {
@@ -258,10 +256,7 @@ class _AccountPageState extends State<AccountPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const PageAppBar(title: '教务账户'),
-      body: SyncPowered(
-        onSyncEnd: _loadUserInfoSilently,
-        childBuilder: (context) => _buildBody(context),
-      ),
+      body: _buildBody(context),
     );
   }
 
@@ -383,27 +378,6 @@ class _AccountPageState extends State<AccountPage> {
                     onTap: () {
                       Haptics.selection();
                       showSsoLoginDialog(
-                        context,
-                        onLoginSuccess: (method, cookie) {
-                          _currentLoginMethod = method;
-                          _currentLoginCookie = cookie;
-                        },
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: Icon(
-                      Icons.cookie_outlined,
-                      color: Theme.of(context).colorScheme.secondary,
-                      size: 32,
-                    ),
-                    title: const Text('使用Cookie登录账户'),
-                    subtitle: const Text('适用于高级用户，需要手动提供Cookie'),
-                    trailing: const Icon(Icons.arrow_forward_ios),
-                    onTap: () {
-                      Haptics.selection();
-                      showCookieLoginDialog(
                         context,
                         onLoginSuccess: (method, cookie) {
                           _currentLoginMethod = method;
