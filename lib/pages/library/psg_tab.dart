@@ -118,11 +118,12 @@ class _PsgTabState extends State<PsgTab> {
     return now.hour * 60 + now.minute;
   }
 
-  /// 该房间在所选日期的逐时段占用（绿=空闲 黄=被占用 灰=不可约）
-  List<SlotState> _roomSlotStates(LibzwDevice room, int openStart, int openEnd) {
+  /// 该房间在所选日期的逐时段占用（绿=空闲 黄=被占用 灰=不可约）；
+  /// 时段边界按 :00/:30 整点对齐
+  List<SlotState> _roomSlotStates(LibzwDevice room, int gridStart, int openEnd) {
     final blockedBefore = _dayOffset == 0 ? _ceilTo30(_nowMin + 5) : -1;
     final states = <SlotState>[];
-    for (var t = openStart; t + 30 <= openEnd; t += 30) {
+    for (var t = gridStart; t + 30 <= openEnd; t += 30) {
       if (t < blockedBefore) {
         states.add(SlotState.blocked);
         continue;
@@ -152,11 +153,14 @@ class _PsgTabState extends State<PsgTab> {
         ? '${openEndRaw.replaceAll(':', '').substring(0, 2)}:${openEndRaw.replaceAll(':', '').substring(2)}'
         : openEndRaw);
 
+    // 时段按 :00/:30 整点对齐（开放时间 07:10 这类则从 07:30 起），今天/明天/后天一致
+    final gridStart = _ceilTo30(openStart);
+
     final now = DateTime.now();
     final nowMin = now.hour * 60 + now.minute;
     final first = _dayOffset == 0
-        ? math.max(openStart, _ceilTo30(nowMin + 5))
-        : openStart;
+        ? math.max(gridStart, _ceilTo30(nowMin + 5))
+        : gridStart;
 
     // 单次最长预约时长（研修间实测 maxResvTime=180 分钟）
     final maxResv = math.max(30, room.resvRule?.maxResvTime ?? 180);
@@ -188,7 +192,7 @@ class _PsgTabState extends State<PsgTab> {
             if (!ends.contains(endMin)) {
               endMin = ends.isNotEmpty ? ends.first : openEnd;
             }
-            final states = _roomSlotStates(room, openStart, openEnd);
+            final states = _roomSlotStates(room, gridStart, openEnd);
             return Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -204,17 +208,17 @@ class _PsgTabState extends State<PsgTab> {
                     const SizedBox(height: 12),
                     AvailabilityTimeline(
                       states: states,
-                      selStartIndex: ((startMin - openStart) / 30)
+                      selStartIndex: ((startMin - gridStart) / 30)
                           .round()
                           .clamp(0, states.length),
-                      selEndIndex: ((endMin - openStart) / 30)
+                      selEndIndex: ((endMin - gridStart) / 30)
                           .round()
                           .clamp(0, states.length),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(_fmt(openStart),
+                        Text(_fmt(gridStart),
                             style: TextStyle(
                                 fontSize: 11,
                                 color: Theme.of(context).colorScheme.outline)),

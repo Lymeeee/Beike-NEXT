@@ -29,6 +29,9 @@ class CurriculumTable extends StatelessWidget {
   final void Function(int day, int period)? onTripleTapEmptyCell;
   final void Function(ClassItem classItem)? onTapCustomCourse;
 
+  /// 隐私模式：不显示上课地点
+  final bool hideLocations;
+
   const CurriculumTable({
     super.key,
     required this.curriculumData,
@@ -39,6 +42,7 @@ class CurriculumTable extends StatelessWidget {
     required this.currentWeek,
     this.onTripleTapEmptyCell,
     this.onTapCustomCourse,
+    this.hideLocations = false,
   });
 
   List<ClassItem> get weekClasses => curriculumData.allClasses
@@ -61,7 +65,7 @@ class CurriculumTable extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('教师: ${classItem.teacherName}'),
-            Text('地点: ${classItem.locationName}'),
+            if (!hideLocations) Text('地点: ${classItem.locationName}'),
             Text('周次: ${classItem.weeksText}'),
             Text('节次: 第${classItem.period}大节'),
           ],
@@ -503,7 +507,8 @@ class CurriculumTable extends StatelessWidget {
     int maxLines,
     Color foregroundColor,
   ) {
-    final location = _simplifyLocation(firstClass.locationName);
+    final location =
+        hideLocations ? '' : _simplifyLocation(firstClass.locationName);
     final locationMaxLines = (maxLines ~/ 2).clamp(1, 2);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,

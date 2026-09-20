@@ -940,6 +940,99 @@ class CustomCoursesList extends BaseDataClass {
       };
 }
 
+/// 亲情课表：导入的他人课表（自带课程与节次，可脱离本机课表独立查看）
+class FamilyCurriculum extends BaseDataClass {
+  /// 导入时的毫秒时间戳字符串，同名课表也能区分
+  final String id;
+
+  /// 课表主人姓名（如 "张三"），导出时取自其教务登录信息
+  final String name;
+  final TermInfo term;
+  final List<ClassItem> classes;
+  final List<ClassPeriod> periods;
+  final bool pinned;
+
+  FamilyCurriculum({
+    required this.id,
+    required this.name,
+    required this.term,
+    required this.classes,
+    required this.periods,
+    this.pinned = false,
+  });
+
+  String get displayName => name.isEmpty ? '未署名' : name;
+
+  FamilyCurriculum copyWith({String? name, bool? pinned}) => FamilyCurriculum(
+        id: id,
+        name: name ?? this.name,
+        term: term,
+        classes: classes,
+        periods: periods,
+        pinned: pinned ?? this.pinned,
+      );
+
+  @override
+  Map<String, dynamic> getEssentials() => {'id': id, 'name': name};
+
+  factory FamilyCurriculum.fromJson(Map<String, dynamic> json) {
+    final term = json['term'];
+    return FamilyCurriculum(
+      id: '${json['id'] ?? ''}',
+      name: '${json['name'] ?? ''}',
+      term: term is Map
+          ? TermInfo.fromJson(term.cast<String, dynamic>())
+          : TermInfo.autoDetect(),
+      classes: (json['classes'] as List<dynamic>?)
+              ?.whereType<Map>()
+              .map((e) => ClassItem.fromJson(e.cast<String, dynamic>()))
+              .toList() ??
+          [],
+      periods: (json['periods'] as List<dynamic>?)
+              ?.whereType<Map>()
+              .map((e) => ClassPeriod.fromJson(e.cast<String, dynamic>()))
+              .toList() ??
+          [],
+      pinned: json['pinned'] == true,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'term': term.toJson(),
+        'classes': classes.map((e) => e.toJson()).toList(),
+        'periods': periods.map((e) => e.toJson()).toList(),
+        'pinned': pinned,
+      };
+}
+
+/// 亲情课表整体（持久化用）
+class FamilyCurriculumList extends BaseDataClass {
+  final List<FamilyCurriculum> items;
+
+  FamilyCurriculumList({required this.items});
+
+  @override
+  Map<String, dynamic> getEssentials() => {'count': items.length};
+
+  factory FamilyCurriculumList.fromJson(Map<String, dynamic> json) {
+    return FamilyCurriculumList(
+      items: (json['items'] as List<dynamic>?)
+              ?.whereType<Map>()
+              .map((e) => FamilyCurriculum.fromJson(e.cast<String, dynamic>()))
+              .toList() ??
+          [],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'items': items.map((e) => e.toJson()).toList(),
+      };
+}
+
 class ScoreDetail {
   final String name;
   final double score;

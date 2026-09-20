@@ -96,6 +96,7 @@ class LibraryService extends ChangeNotifier {
       accNo: '${data['accNo'] ?? ''}',
       trueName: data['trueName'] as String?,
       logonName: data['logonName'] as String?,
+      lastSmsPhone: _session?.lastSmsPhone,
     );
     applySession(_session);
   }
@@ -111,6 +112,7 @@ class LibraryService extends ChangeNotifier {
         accNo: '${data['accNo'] ?? ''}',
         trueName: data['trueName'] as String?,
         logonName: data['logonName'] as String?,
+        lastSmsPhone: old.lastSmsPhone,
       ));
     }
   }

@@ -2,11 +2,17 @@ import '/types/base.dart';
 
 /// 图书馆（libzw.ustb.edu.cn）会话数据，持久化到本地
 class LibzwSession extends BaseDataClass {
+  /// 在本机 config 存储中的 key
+  static const String storeKey = 'library_account_data';
+
   final String? token;
   final String? icCookie;
   final String? accNo;
   final String? trueName;
   final String? logonName;
+
+  /// 上次短信登录使用的手机号（仅本机记忆，用于登录框预填）
+  final String? lastSmsPhone;
 
   LibzwSession({
     this.token,
@@ -14,16 +20,19 @@ class LibzwSession extends BaseDataClass {
     this.accNo,
     this.trueName,
     this.logonName,
+    this.lastSmsPhone,
   });
 
   bool get isValid => (token?.isNotEmpty ?? false) && (accNo?.isNotEmpty ?? false);
 
-  LibzwSession copyWith({String? token, String? icCookie}) => LibzwSession(
+  LibzwSession copyWith({String? token, String? icCookie, String? lastSmsPhone}) =>
+      LibzwSession(
         token: token ?? this.token,
         icCookie: icCookie ?? this.icCookie,
         accNo: accNo,
         trueName: trueName,
         logonName: logonName,
+        lastSmsPhone: lastSmsPhone ?? this.lastSmsPhone,
       );
 
   factory LibzwSession.fromJson(Map<String, dynamic> json) => LibzwSession(
@@ -32,6 +41,7 @@ class LibzwSession extends BaseDataClass {
         accNo: json['accNo'] as String?,
         trueName: json['trueName'] as String?,
         logonName: json['logonName'] as String?,
+        lastSmsPhone: json['lastSmsPhone'] as String?,
       );
 
   @override
@@ -41,6 +51,7 @@ class LibzwSession extends BaseDataClass {
         'accNo': accNo,
         'trueName': trueName,
         'logonName': logonName,
+        'lastSmsPhone': lastSmsPhone,
       };
 
   @override

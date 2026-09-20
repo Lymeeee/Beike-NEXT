@@ -8,10 +8,12 @@ import '/types/library.dart';
 import '/utils/haptic.dart';
 import 'widgets.dart';
 
-/// 选座：按馆区 + 日期随机挑一个空座位。
+/// 选座：按馆区 + 日期 + 开始时间随机挑一个空座位。
 ///
-/// 预约窗口固定为「现在(+1分钟) → 闭馆」（明天 = 开馆 → 闭馆），无需选择时段；
-/// 按用户约定，只有窗口内**整段空闲**的座位才算候选（半空闲视为被占用）。
+/// 预约终点固定为闭馆；开始时间可选，首个选项为「现在」（明天从开馆起），之后按 30 分钟递增。
+/// 只有窗口内**整段空闲**的座位才算候选（半空闲视为被占用），因此「现在」选项保证选到的座位
+/// 立刻可用。馆区芯片上的「空 N」随所选开始时间联动，不使用 seatMenu 的 remainCount
+/// （服务端会把半空闲座位算作可用）。
 class SeatTab extends StatefulWidget {
   const SeatTab({super.key, required this.service});
 
@@ -33,9 +35,18 @@ class _SeatTabState extends State<SeatTab> {
   String _roomOpenStart = '07:00';
   String _roomOpenEnd = '22:00';
 
+  /// 所选开始时间（当天分钟数）；null = 取默认（今天=现在之后最近的可选时间，明天=开馆）
+  int? _startMin;
+
   /// 是否有电源插座：1=是（要求带插座） 2=否（要求不带插座），默认 否
   int _powerFilter = 2;
   bool _busy = false;
+
+  /// 当前楼层各馆区「整段空闲」座位数；未统计出（加载中/失败）的馆区不在表中
+  Map<int, int>? _freeCounts;
+  bool _counting = false;
+  final Map<String, List<LibzwDevice>> _seatCache = {};
+  int _countReq = 0;
 
   @override
   void initState() {
@@ -83,6 +94,72 @@ class _SeatTabState extends State<SeatTab> {
     } catch (_) {
       // 取不到开放时间时沿用默认值
     }
+    if (mounted) await _refreshCounts();
+  }
+
+  // ---- 空位数统计 ----
+
+  /// 统计当前楼层各馆区的「整段空闲」座位数，口径与随机选座一致（半空闲视为占用）。
+  Future<void> _refreshCounts({bool force = false}) async {
+    final lab = _lab;
+    if (lab == null || lab.children.isEmpty) return;
+
+    // 固化发起时的日期：请求在途期间用户切换日期/馆区时，旧数据不得进入新键
+    final ymd = _ymd;
+    String keyOf(int roomId) => '$roomId-$ymd';
+    if (!force &&
+        lab.children.every((r) => _seatCache.containsKey(keyOf(r.id)))) {
+      setState(() {
+        _freeCounts = {
+          for (final r in lab.children)
+            r.id: _freeCountOf(_seatCache[keyOf(r.id)]!),
+        };
+      });
+      return;
+    }
+
+    final req = ++_countReq;
+    setState(() {
+      _freeCounts = {};
+      _counting = true;
+    });
+    for (final room in lab.children) {
+      try {
+        final cached = force ? null : _seatCache[keyOf(room.id)];
+        final seats = cached ?? await widget.service.querySeats(room.id, ymd);
+        if (!mounted || req != _countReq) return;
+        final count = _freeCountOf(seats);
+        _seatCache[keyOf(room.id)] = seats;
+        setState(() {
+          _freeCounts = {..._freeCounts!, room.id: count};
+        });
+      } catch (_) {
+        // 单个馆区统计失败不影响其他馆区；该馆区回退显示服务端 remainCount
+        if (!mounted || req != _countReq) return;
+      }
+    }
+    if (!mounted || req != _countReq) return;
+    setState(() => _counting = false);
+  }
+
+  int _freeCountOf(List<LibzwDevice> seats) {
+    var n = 0;
+    for (final s in seats) {
+      if (!s.reservable) continue;
+      final window = _windowFromOpen(s.openStart, s.openEnd);
+      if (window == null) continue;
+      final (begin, end) = window;
+      if (end.isAfter(begin) && s.isFreeBetween(begin, end)) n++;
+    }
+    return n;
+  }
+
+  String _roomCountText(LibzwArea room) {
+    final counts = _freeCounts;
+    if (counts != null && counts.containsKey(room.id)) {
+      return '${counts[room.id]}';
+    }
+    return _counting ? '…' : '${room.remainCount}';
   }
 
   // ---- 时间工具 ----
@@ -110,30 +187,60 @@ class _SeatTabState extends State<SeatTab> {
   static String _fmt(int min) =>
       '${(min ~/ 60).toString().padLeft(2, '0')}:${(min % 60).toString().padLeft(2, '0')}';
 
-  /// 预约窗口：今天=现在(+1分钟)→闭馆；明天=开馆→闭馆
-  (DateTime, DateTime)? _bookingWindow() {
-    final room = _room;
-    if (room == null) return null;
+  static int _ceilTo5(int min) => ((min + 4) ~/ 5) * 5;
+
+  static int _ceilTo30(int min) => ((min + 29) ~/ 30) * 30;
+
+  /// 开始时间候选：首个 = 最早可约（今天已开馆时即「现在 +5 分钟」向上取整到 5 分钟，
+  /// 与 resvRule.timeInterval=5 一致；明天或未开馆 = 开馆时间），之后按 30 分钟粒度递增；
+  /// 最晚到距闭馆 30 分钟（最短预约时长）
+  List<int> _startOptions() {
     final openStart = _toMin(_roomOpenStart);
     final openEnd = _toMin(_roomOpenEnd);
-    DateTime start;
+    var first = openStart;
     if (_dayOffset == 0) {
-      final s = DateTime.now().add(const Duration(minutes: 1));
-      start = DateTime(s.year, s.month, s.day, s.hour, s.minute);
-    } else {
-      start = DateTime(
-          _day.year, _day.month, _day.day, openStart ~/ 60, openStart % 60);
+      final now = DateTime.now();
+      first = math.max(openStart, _ceilTo5(now.hour * 60 + now.minute + 5));
     }
-    final end =
-        DateTime(_day.year, _day.month, _day.day, openEnd ~/ 60, openEnd % 60);
-    return (start, end);
+    if (first + 30 > openEnd) return const [];
+    return [
+      first,
+      for (var t = _ceilTo30(first + 1); t + 30 <= openEnd; t += 30) t,
+    ];
   }
 
-  bool get _windowTooShort {
+  /// 当前生效的开始时间；所选时间已不在候选内（时间流逝/换了馆区）时回退到最早可选
+  int? get _effectiveStart {
+    final options = _startOptions();
+    if (options.isEmpty) return null;
+    final sel = _startMin;
+    return sel != null && options.contains(sel) ? sel : options.first;
+  }
+
+  /// 预约窗口：起点 = 所选开始时间（不早于座位自身开放时间），终点 = 闭馆
+  (DateTime, DateTime)? _windowFromOpen(String openStartHm, String openEndHm) {
+    final startMin = _effectiveStart;
+    if (startMin == null) return null;
+    final seatOpen =
+        _toMin(openStartHm.isEmpty ? _roomOpenStart : openStartHm);
+    final beginMin = math.max(startMin, seatOpen);
+    final endMin = _toMin(openEndHm.isEmpty ? _roomOpenEnd : openEndHm);
+    return (
+      DateTime(_day.year, _day.month, _day.day, beginMin ~/ 60, beginMin % 60),
+      DateTime(_day.year, _day.month, _day.day, endMin ~/ 60, endMin % 60),
+    );
+  }
+
+  (DateTime, DateTime)? _bookingWindow() {
+    if (_room == null) return null;
+    return _windowFromOpen(_roomOpenStart, _roomOpenEnd);
+  }
+
+  /// 今天已无任何可选开始时间（已闭馆或距闭馆不足 30 分钟）
+  bool get _closedToday {
     if (_dayOffset != 0) return false;
-    final w = _bookingWindow();
-    if (w == null) return false;
-    return !w.$2.isAfter(w.$1.add(const Duration(minutes: 30)));
+    return _toMin(_roomOpenEnd) <=
+        DateTime.now().hour * 60 + DateTime.now().minute;
   }
 
   // ---- 随机选座 ----
@@ -143,10 +250,6 @@ class _SeatTabState extends State<SeatTab> {
     final window = _bookingWindow();
     if (room == null || window == null) return;
     final (begin, end) = window;
-    if (!end.isAfter(begin.add(const Duration(minutes: 30)))) {
-      _snack('距闭馆不足 30 分钟，试试选择明天');
-      return;
-    }
     setState(() => _busy = true);
     try {
       final seats = await widget.service.querySeats(room.id, _ymd);
@@ -194,28 +297,13 @@ class _SeatTabState extends State<SeatTab> {
           timeText: timeText,
           serverMessage: message,
         );
-        if (mounted) _loadMenuQuietly();
+        if (mounted) _refreshCounts(force: true);
       }
     } catch (e) {
       if (mounted) _snack('$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  /// 预约成功后静默刷新空位统计
-  Future<void> _loadMenuQuietly() async {
-    try {
-      final labs = await widget.service.getSeatMenu();
-      if (mounted) {
-        setState(() {
-          _labs = labs;
-          _lab = labs.where((l) => l.id == _lab?.id).firstOrNull ?? _lab;
-          _room =
-              _lab?.children.where((r) => r.id == _room?.id).firstOrNull ?? _room;
-        });
-      }
-    } catch (_) {}
   }
 
   void _snack(String message) {
@@ -252,6 +340,12 @@ class _SeatTabState extends State<SeatTab> {
     }
 
     final window = _bookingWindow();
+    final startOptions = _startOptions();
+    final startMin = _effectiveStart;
+    // 首个候选在「今天且馆区已开放」时即「现在」，否则是开馆时间
+    final firstIsNow = _dayOffset == 0 &&
+        startOptions.isNotEmpty &&
+        startOptions.first > _toMin(_roomOpenStart);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -282,7 +376,7 @@ class _SeatTabState extends State<SeatTab> {
             runSpacing: 8,
             children: _lab!.children.map((room) {
               return ChoiceChip(
-                label: Text('${room.name}（空 ${room.remainCount}）'),
+                label: Text('${room.name}（空 ${_roomCountText(room)}）'),
                 selected: room.id == _room?.id,
                 onSelected: (_) {
                   Haptics.selection();
@@ -309,6 +403,36 @@ class _SeatTabState extends State<SeatTab> {
           }).toList(),
         ),
         const SizedBox(height: 16),
+        _sectionTitle(theme, '开始时间（结束至闭馆）'),
+        // 「现在」= 最早可约时间（5 分钟粒度），其余 30 分钟粒度
+        if (startOptions.isEmpty)
+          Text(
+            '今天已无可选时段',
+            style: TextStyle(fontSize: 12, color: theme.colorScheme.outline),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var i = 0; i < startOptions.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: Text(
+                        i == 0 && firstIsNow ? '现在' : _fmt(startOptions[i])),
+                    selected: startOptions[i] == startMin,
+                    onSelected: (_) {
+                      Haptics.selection();
+                      setState(() => _startMin =
+                          i == 0 && firstIsNow ? null : startOptions[i]);
+                      _refreshCounts();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
         _sectionTitle(theme, '是否有电源插座'),
         Wrap(
           spacing: 8,
@@ -333,7 +457,7 @@ class _SeatTabState extends State<SeatTab> {
         ),
         const SizedBox(height: 20),
         FilledButton.icon(
-          onPressed: _busy || _room == null || _windowTooShort
+          onPressed: _busy || _room == null || window == null
               ? null
               : () { Haptics.medium(); _pick(); },
           style: FilledButton.styleFrom(
@@ -350,11 +474,11 @@ class _SeatTabState extends State<SeatTab> {
         ),
         const SizedBox(height: 10),
         Text(
-          _windowTooShort
+          _closedToday
+              ? '今日已闭馆（$_roomOpenEnd），明天再来吧'
+              : startMin == null
               ? '距闭馆不足 30 分钟，现在无法预约，明天再来吧'
-              : (_dayOffset == 0
-                  ? '将随机挑选一个从「现在（${window != null ? _fmt(window.$1.hour * 60 + window.$1.minute) : ""}）」一直空到闭馆（$_roomOpenEnd）的座位'
-                  : '将随机挑选一个明天开馆（$_roomOpenStart）到闭馆（$_roomOpenEnd）整段空闲的座位'),
+              : '将随机挑选一个 $_dayLabel ${_fmt(startMin)} - $_roomOpenEnd 整段空闲的座位',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: theme.colorScheme.outline),
         ),

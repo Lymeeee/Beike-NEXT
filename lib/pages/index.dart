@@ -5,8 +5,10 @@ import '/utils/page_mixins.dart';
 import '/utils/haptic.dart';
 import '/utils/navigation.dart';
 import '/utils/exam_helper.dart';
+import '/services/library/service.dart';
 import '/services/widget_updater.dart';
 import '/types/courses.dart';
+import '/types/library.dart';
 import '/types/preferences.dart';
 
 class _FeatureCardConfig {
@@ -33,7 +35,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage>
-    with PageStateMixin, LoadingStateMixin {
+    with PageStateMixin, LoadingStateMixin, WidgetsBindingObserver {
   static const _noBorderShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(12)),
   );
@@ -46,6 +48,12 @@ class _HomePageState extends State<HomePage>
   ExamInfo? _ongoingExam;
   ExamInfo? _upcomingExam;
   Timer? _shortRefreshTimer;
+
+  /// 首页卡片展示的图书馆今明预约（只读）
+  final LibraryService _libraryService = LibraryService();
+  List<LibzwReservation> _libraryReservations = const [];
+  bool _libraryFetching = false;
+  bool _homeRouteCurrent = true;
   // Feature card configurations
   late final List<_FeatureCardConfig> _courseFeatureCards = [
     _FeatureCardConfig(
@@ -122,6 +130,7 @@ class _HomePageState extends State<HomePage>
     _loadUserInfo();
     _loadCurriculumData();
     _loadExamData();
+    _loadLibraryReservations();
     _startTimers();
   }
 
@@ -139,8 +148,24 @@ class _HomePageState extends State<HomePage>
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 从后台回到前台时刷新图书馆预约（隔夜后旧数据日期会错位）
+    if (state == AppLifecycleState.resumed) {
+      _loadLibraryReservations();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _shortRefreshTimer?.cancel();
+    _libraryService.dispose();
     super.dispose();
   }
 
@@ -253,8 +278,63 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  static String _dashYmd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// 拉取今明两天未结束的图书馆预约（座位 + 研修间），用于首页卡片展示。
+  /// 未登录/网络异常时保持现状；仅读取已有会话，不做登录恢复。
+  Future<void> _loadLibraryReservations() async {
+    if (_libraryFetching) return;
+    final saved = serviceProvider.storeService
+        .getConfig<LibzwSession>(LibzwSession.storeKey, LibzwSession.fromJson);
+    if (saved == null || !saved.isValid) {
+      if (_libraryReservations.isNotEmpty && mounted) {
+        setState(() => _libraryReservations = const []);
+      }
+      return;
+    }
+
+    _libraryFetching = true;
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final dayAfterTomorrow = today.add(const Duration(days: 2));
+      _libraryService.applySession(saved);
+      final list = await _libraryService.getMyReservations(
+        beginDateDash: _dashYmd(today),
+        endDateDash: _dashYmd(today.add(const Duration(days: 1))),
+      );
+      final items = list
+          .where((r) =>
+              !r.isEnded &&
+              r.begin != null &&
+              r.end != null &&
+              r.end!.isAfter(now) &&
+              r.begin!.isBefore(dayAfterTomorrow))
+          .toList()
+        ..sort((a, b) => a.begin!.compareTo(b.begin!));
+      if (mounted) setState(() => _libraryReservations = items);
+    } catch (_) {
+      // 会话失效或网络异常：保留现有显示
+    } finally {
+      _libraryFetching = false;
+    }
+  }
+
+  /// 从子页面返回首页（路由重新可见）时刷新图书馆预约
+  void _refreshLibraryOnReturn() {
+    final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    if (isCurrent && !_homeRouteCurrent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadLibraryReservations();
+      });
+    }
+    _homeRouteCurrent = isCurrent;
+  }
+
   @override
   Widget build(BuildContext context) {
+    _refreshLibraryOnReturn();
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -1059,6 +1139,74 @@ class _HomePageState extends State<HomePage>
     final titleFontSize = isWideScreen ? 28.0 : 24.0;
     final titleGap = isWideScreen ? 12.0 : 16.0;
     final descFontSize = isWideScreen ? 16.0 : 14.0;
+    final hasReservations = _libraryReservations.isNotEmpty;
+
+    final titleRow = Row(
+      children: [
+        Icon(_libraryCard.icon,
+            size: iconSize, color: theme.colorScheme.onPrimaryContainer),
+        SizedBox(width: iconGap),
+        Expanded(
+          child: Text(
+            _libraryCard.title,
+            style: TextStyle(
+              fontSize: titleFontSize,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+      ],
+    );
+    final description = Text(
+      _libraryCard.description,
+      style: TextStyle(
+        fontSize: descFontSize,
+        color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+      ),
+    );
+
+    final Widget content;
+    if (isWideScreen) {
+      content = Row(
+        children: [
+          Expanded(
+            flex: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                titleRow,
+                const SizedBox(height: 12),
+                description,
+              ],
+            ),
+          ),
+          if (hasReservations) ...[
+            const SizedBox(width: 16),
+            Container(
+              constraints: const BoxConstraints(maxWidth: 290),
+              child: _buildLibraryPreviews(),
+            ),
+          ],
+        ],
+      );
+    } else {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          titleRow,
+          if (hasReservations) ...[
+            const SizedBox(height: 16),
+            _buildLibraryPreviews(),
+          ] else ...[
+            SizedBox(height: titleGap),
+            description,
+          ],
+        ],
+      );
+    }
 
     return Card.filled(
       shape: _noBorderShape,
@@ -1075,47 +1223,103 @@ class _HomePageState extends State<HomePage>
           ),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(_libraryCard.icon,
-                              size: iconSize,
-                              color: theme.colorScheme.onPrimaryContainer),
-                          SizedBox(width: iconGap),
-                          Expanded(
-                            child: Text(
-                              _libraryCard.title,
-                              style: TextStyle(
-                                fontSize: titleFontSize,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: titleGap),
-                      Text(
-                        _libraryCard.description,
-                        style: TextStyle(
-                          fontSize: descFontSize,
-                          color: theme.colorScheme.onPrimaryContainer
-                              .withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            child: content,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLibraryPreviews() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < _libraryReservations.length; i++)
+            Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
+              child: _buildSingleReservationPreview(_libraryReservations[i]),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 状态标签：进行中 / 今天 / 明天（列表项均非空 begin/end，见 _loadLibraryReservations）
+  String _reservationDayLabel(LibzwReservation r) {
+    final now = DateTime.now();
+    if (!r.begin!.isAfter(now) && r.end!.isAfter(now)) return '  进行中';
+    final today = DateTime(now.year, now.month, now.day);
+    return DateTime(r.begin!.year, r.begin!.month, r.begin!.day) == today
+        ? '  今天'
+        : '  明天';
+  }
+
+  Widget _buildSingleReservationPreview(LibzwReservation r) {
+    final theme = Theme.of(context);
+    final dev = r.devices.isNotEmpty ? r.devices.first : null;
+    // 研修间的 roomName 常与 devName 同名，此时改显示楼栋更易区分
+    final roomText = dev == null
+        ? ''
+        : (dev.roomName.isNotEmpty && dev.roomName != dev.devName)
+            ? dev.roomName
+            : dev.labName;
+    final location = [
+      if (r.kindLabel.isNotEmpty) r.kindLabel,
+      if (roomText.isNotEmpty) roomText,
+    ].join(' · ');
+    final timeRange = '${TimeOfDay.fromDateTime(r.begin!).format(context)} - '
+        '${TimeOfDay.fromDateTime(r.end!).format(context)}';
+
+    final textStyle1 = TextStyle(
+      fontSize: 12,
+      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+      fontWeight: FontWeight.w500,
+    );
+    final textStyle2 = TextStyle(
+      fontSize: 14,
+      color: theme.colorScheme.onPrimaryContainer,
+      fontWeight: FontWeight.bold,
+    );
+    final textStyle3 = TextStyle(
+      fontSize: 12,
+      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+    );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 220),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_reservationDayLabel(r), style: textStyle1),
+            const SizedBox(height: 4),
+            Text(
+              '  ${dev?.devName ?? '预约'}',
+              style: textStyle2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text('  $timeRange', style: textStyle3),
+            if (location.isNotEmpty)
+              Text(
+                '  $location',
+                style: textStyle3,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
         ),
       ),
     );

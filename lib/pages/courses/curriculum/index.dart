@@ -10,6 +10,7 @@ import '/utils/navigation.dart';
 import 'common.dart';
 import 'table.dart';
 import 'custom_course_dialog.dart';
+import 'family_dialog.dart';
 
 class MajorPeriodInfo {
   final int id;
@@ -37,6 +38,8 @@ class _CurriculumPageState extends State<CurriculumPage>
   int _previousWeek = 0;
   bool _isLoading = false;
   List<ClassItem> _customCourses = [];
+  /// 隐私模式：隐藏课表上的上课地点（仅本次进入页面有效）
+  bool _hideLocations = false;
   late AnimationController _fadeAnimationController;
   late Animation<double> _fadeAnimation;
 
@@ -246,6 +249,58 @@ class _CurriculumPageState extends State<CurriculumPage>
         title: '课表',
         actions: _curriculumData != null
             ? [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Tooltip(
+                    message: '亲情课表',
+                    child: FilledButton(
+                      onPressed: () {
+                        Haptics.light();
+                        showFamilyCurriculumDialog(context);
+                      },
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        minimumSize: const Size(40, 40),
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.favorite_border,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Tooltip(
+                    message: _hideLocations ? '显示上课地点' : '隐藏上课地点',
+                    child: FilledButton(
+                      onPressed: () {
+                        Haptics.selection();
+                        setState(() => _hideLocations = !_hideLocations);
+                      },
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        minimumSize: const Size(40, 40),
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Icon(
+                        _hideLocations
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: FilledButton.icon(
@@ -831,6 +886,7 @@ class _CurriculumPageState extends State<CurriculumPage>
             currentWeek: _currentWeek,
             onTripleTapEmptyCell: _onTripleTapEmptyCell,
             onTapCustomCourse: _onTapCustomCourse,
+            hideLocations: _hideLocations,
           );
         } catch (e) {
           return Center(

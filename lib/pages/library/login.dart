@@ -9,16 +9,29 @@ import '/utils/login_dialog.dart';
 import '/utils/ustb_sso.dart';
 
 /// 弹出图书馆登录对话框（微信扫码 / 短信验证码）；成功返回会话数据，取消/失败返回 null
-Future<LibzwSession?> showLibzwLoginDialog(BuildContext context) {
+Future<LibzwSession?> showLibzwLoginDialog(
+  BuildContext context, {
+  String? defaultSmsPhone,
+  ValueChanged<String>? onUpdateSmsPhone,
+}) {
   return showDialog<LibzwSession>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => const LibzwLoginDialog(),
+    builder: (context) => LibzwLoginDialog(
+      defaultSmsPhone: defaultSmsPhone,
+      onUpdateSmsPhone: onUpdateSmsPhone,
+    ),
   );
 }
 
 class LibzwLoginDialog extends StatefulWidget {
-  const LibzwLoginDialog({super.key});
+  const LibzwLoginDialog({super.key, this.defaultSmsPhone, this.onUpdateSmsPhone});
+
+  /// 预填的短信登录手机号（上次使用时记住的）
+  final String? defaultSmsPhone;
+
+  /// 手机号变化时回写（为空串表示清空）
+  final ValueChanged<String>? onUpdateSmsPhone;
 
   @override
   State<LibzwLoginDialog> createState() => _LibzwLoginDialogState();
@@ -43,6 +56,8 @@ class _LibzwLoginDialogState extends State<LibzwLoginDialog> {
         onSuccess: (response, session) {
           if (mounted) Navigator.of(context).pop(response as LibzwSession);
         },
+        defaultSmsPhone: widget.defaultSmsPhone,
+        onUpdateSmsPhone: widget.onUpdateSmsPhone,
       ),
     );
   }

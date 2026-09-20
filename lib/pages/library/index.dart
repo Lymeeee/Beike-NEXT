@@ -20,8 +20,6 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage>
     with PageStateMixin, LoadingStateMixin {
-  static const String _sessionKey = 'library_account_data';
-
   final LibraryService _service = LibraryService();
   bool _booting = true;
 
@@ -42,18 +40,29 @@ class _LibraryPageState extends State<LibraryPage>
     if (mounted) setState(() {});
   }
 
+  LibzwSession? _readStored() => serviceProvider.storeService
+      .getConfig<LibzwSession>(LibzwSession.storeKey, LibzwSession.fromJson);
+
+  /// 短信登录手机号回写：仅更新手机号，保留已存的其他字段
+  void _saveSmsPhone(String phone) {
+    try {
+      final stored = _readStored() ?? LibzwSession();
+      serviceProvider.storeService.putConfig(
+        LibzwSession.storeKey,
+        stored.copyWith(lastSmsPhone: phone),
+      );
+    } catch (_) {}
+  }
+
   Future<void> _boot() async {
     try {
-      final saved = serviceProvider.storeService.getConfig<LibzwSession>(
-        _sessionKey,
-        LibzwSession.fromJson,
-      );
+      final saved = _readStored();
       if (saved != null) {
         await _service.restore(saved);
         // token 可能被刷新过，回写持久化
         final session = _service.session;
         if (session != null && session != saved) {
-          serviceProvider.storeService.putConfig(_sessionKey, session);
+          serviceProvider.storeService.putConfig(LibzwSession.storeKey, session);
         }
       }
     } catch (_) {
@@ -65,11 +74,17 @@ class _LibraryPageState extends State<LibraryPage>
 
   Future<void> _login() async {
     Haptics.medium();
-    final session = await showLibzwLoginDialog(context);
+    final session = await showLibzwLoginDialog(
+      context,
+      defaultSmsPhone: _readStored()?.lastSmsPhone,
+      onUpdateSmsPhone: _saveSmsPhone,
+    );
     if (session == null || !mounted) return;
-    _service.applySession(session);
+    // 登录返回的会话不含手机号，从缓存补上后一起持久化
+    final merged = session.copyWith(lastSmsPhone: _readStored()?.lastSmsPhone);
+    _service.applySession(merged);
     try {
-      serviceProvider.storeService.putConfig(_sessionKey, session);
+      serviceProvider.storeService.putConfig(LibzwSession.storeKey, merged);
     } catch (_) {}
     if (mounted) setState(() {});
   }
@@ -96,7 +111,16 @@ class _LibraryPageState extends State<LibraryPage>
     if (ok != true) return;
     _service.applySession(null);
     try {
-      serviceProvider.storeService.delConfig(_sessionKey);
+      // 退出登录保留手机号（与教务一致），下次登录框仍预填
+      final phone = _readStored()?.lastSmsPhone;
+      if (phone != null) {
+        serviceProvider.storeService.putConfig(
+          LibzwSession.storeKey,
+          LibzwSession(lastSmsPhone: phone),
+        );
+      } else {
+        serviceProvider.storeService.delConfig(LibzwSession.storeKey);
+      }
     } catch (_) {}
     if (mounted) setState(() {});
   }
