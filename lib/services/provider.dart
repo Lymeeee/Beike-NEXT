@@ -7,8 +7,6 @@ import '/services/store/base.dart';
 import '/services/store/general.dart';
 import '/services/net/base.dart';
 import '/services/net/drcom_net.dart';
-import '/services/sync/base.dart';
-import '/services/sync/sync_service.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
 
@@ -22,9 +20,6 @@ class ServiceProvider extends ChangeNotifier {
   // Net Service
   late BaseNetService _netService;
 
-  // Sync Service
-  late BaseSyncService _syncService;
-
   // Store Service
   late BaseStoreService _storeService;
 
@@ -35,19 +30,15 @@ class ServiceProvider extends ChangeNotifier {
   ServiceProvider._internal() {
     _coursesService = UstbByytService();
     _netService = DrcomNetService();
-    _syncService = SyncService();
     _storeService = GeneralStoreService();
 
     _bindService(_coursesService);
     _bindService(_netService);
-    _bindService(_syncService);
   }
 
   BaseCoursesService get coursesService => _coursesService;
 
   BaseNetService get netService => _netService;
-
-  BaseSyncService get syncService => _syncService;
 
   BaseStoreService get storeService => _storeService;
 

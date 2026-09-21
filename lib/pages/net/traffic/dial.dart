@@ -18,13 +18,19 @@ class NetDialDrawer extends StatefulWidget {
 }
 
 class _NetDialDrawerState extends State<NetDialDrawer> {
-  bool _isDialing = false;
   String? _errorMessage;
   DialResult? _result;
   bool _isExpanded = false;
 
   static const String _endpoint = 'https://api.ip.sb/geoip';
   static const Duration _timeout = Duration(seconds: 10);
+
+  @override
+  void initState() {
+    super.initState();
+    // 弹窗打开即自动发起测试，界面只负责展示结果
+    _startDial();
+  }
 
   String _buildUserAgent() {
     try {
@@ -44,11 +50,6 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
   }
 
   Future<void> _startDial() async {
-    setState(() {
-      _isDialing = true;
-      _errorMessage = null;
-    });
-
     try {
       final uri = Uri.parse(_endpoint);
       final startTime = DateTime.now();
@@ -95,12 +96,6 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
       _setUnknownError();
     } catch (_) {
       _setUnknownError();
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isDialing = false;
-        });
-      }
     }
   }
 
@@ -108,7 +103,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
     if (!mounted) return;
     setState(() {
       _result = null;
-      _errorMessage = '无法连接到拨测服务商，请检查您的网络连接、防火墙和代理设置。';
+      _errorMessage = '无法连接到测试服务，请检查您的网络连接、防火墙和代理设置。';
     });
   }
 
@@ -116,14 +111,8 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
     if (!mounted) return;
     setState(() {
       _result = null;
-      _errorMessage = '发生了未知错误，可能是拨测服务商未按预期返回响应。';
+      _errorMessage = '发生了未知错误，可能是测试服务未按预期返回响应。';
     });
-  }
-
-  String _getButtonLabel() {
-    if (_isDialing) return '正在拨测';
-    if (_result != null || _errorMessage != null) return '重新拨测';
-    return '开始拨测';
   }
 
   String? _asString(dynamic value) {
@@ -166,7 +155,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
               Icon(Icons.speed, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
-                '网络拨测',
+                '网络测试',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -175,38 +164,12 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
           ),
           const SizedBox(height: 8),
           Text(
-            '将向第三方服务商发起一次网络拨测，以检查本机的网络情况。',
+            '通过第三方服务商测试本机的出站网络情况。',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isDialing
-                  ? null
-                  : () {
-                      Haptics.medium();
-                      _startDial();
-                    },
-              child: _isDialing
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        SizedBox(width: 8),
-                        Text('正在拨测'),
-                      ],
-                    )
-                  : Text(_getButtonLabel()),
-            ),
-          ),
-          const SizedBox(height: 24),
           Flexible(
             child: SingleChildScrollView(
               child: AnimatedSwitcher(
@@ -229,37 +192,28 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
       return _buildErrorCard(theme, _errorMessage!);
     }
 
-    return _buildPlaceholder(theme);
+    return _buildDialingCard(theme);
   }
 
-  Widget _buildPlaceholder(ThemeData theme) {
+  Widget _buildDialingCard(ThemeData theme) {
     return Card.filled(
-      key: const ValueKey('placeholder'),
+      key: const ValueKey('dialing'),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.satellite_alt,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '暂无记录',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            const SizedBox(height: 16),
-            Text(
-              '请点击“开始拨测”按钮来发起一次实时网络拨测，帮助你了解当前的出站网络状况。',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '正在测试，请稍候…',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
@@ -281,7 +235,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
                 Icon(Icons.check_circle, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  '拨测成功',
+                  '测试成功',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -396,7 +350,7 @@ class _NetDialDrawerState extends State<NetDialDrawer> {
                 Icon(Icons.error, color: theme.colorScheme.error),
                 const SizedBox(width: 8),
                 Text(
-                  '拨测失败',
+                  '测试失败',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -562,4 +516,18 @@ class DialConnectionException implements Exception {
 
 class DialParsingException implements Exception {
   const DialParsingException();
+}
+
+/// 打开网络测试弹窗（"更多"页入口使用）
+void showNetDialDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => const AlertDialog(
+      contentPadding: EdgeInsets.zero,
+      content: SizedBox(
+        width: 420,
+        child: NetDialDrawer(),
+      ),
+    ),
+  );
 }

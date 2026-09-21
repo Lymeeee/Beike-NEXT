@@ -16,7 +16,7 @@ import 'pages/net/traffic/index.dart';
 import 'pages/net/electricity/index.dart';
 import 'pages/net/webvpn/index.dart';
 import 'pages/more/settings.dart';
-import 'pages/more/update.dart';
+import 'pages/more/about.dart';
 import 'pages/empty_classroom/index.dart';
 import 'pages/library/index.dart';
 
@@ -144,10 +144,10 @@ class AppRouter {
         builder: (context, data) => MainLayout(child: const SettingsPage()),
       ),
       NamedRouteDef(
-        name: 'UpdateRoute',
-        path: '/more/update',
+        name: 'AboutRoute',
+        path: '/more/about',
         type: _slideRouteType,
-        builder: (context, data) => MainLayout(child: const UpdatePage()),
+        builder: (context, data) => MainLayout(child: const AboutPage()),
       ),
       NamedRouteDef(
         name: 'EmptyClassroomRoute',

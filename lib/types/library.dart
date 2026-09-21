@@ -300,7 +300,7 @@ abstract class LibzwResvStatus {
   static const int ended = 128; // 已结束
   static const int auditing = 256; // 待审核
   static const int auditFailed = 512; // 审核未通过
-  static const int auditPassed = 1024; // 审核通过
+  static const int auditPassed = 1024; // 原解读"审核通过"；实测每条预约都有，按"未开始"展示
   static const int tempLeave = 2048; // 已暂离
   static const int waitAgree = 8192; // 待同意
   static const int report = 16384; // 举报
@@ -314,8 +314,9 @@ abstract class LibzwResvStatus {
     if ((status & ended) != 0) parts.add('已结束');
     if ((status & auditFailed) != 0) parts.add('审核未通过');
     if ((status & auditing) != 0) parts.add('待审核');
-    if (parts.isEmpty && (status & auditPassed) != 0) parts.add('审核通过');
+    // 已生效先于 1024 判断：1024 每条都有，直接展示会盖掉进行中/已生效状态
     if (parts.isEmpty && (status & active) != 0) parts.add('已生效');
+    if (parts.isEmpty && (status & auditPassed) != 0) parts.add('未开始');
     if (parts.isEmpty && (status & pending) != 0) parts.add('待生效');
     return parts.isEmpty ? '未知状态' : parts.join('·');
   }
@@ -413,6 +414,35 @@ class LibzwReservation {
           const [],
     );
   }
+}
+
+/// 预约列表本地缓存：留存最近一次成功拉取的 resvInfo 原始条目，
+/// 供首页卡片在登录过期/断网时回退展示。
+class LibzwResvCache extends BaseDataClass {
+  /// 在本机 pref 存储中的 key
+  static const String storeKey = 'library_resv_cache';
+
+  /// 原始条目（保留服务端字段原样，读取时再解析为 [LibzwReservation]）
+  final List<Map<String, dynamic>> rawItems;
+
+  LibzwResvCache({required this.rawItems});
+
+  List<LibzwReservation> toReservations() =>
+      rawItems.map(LibzwReservation.fromJson).toList();
+
+  @override
+  Map<String, dynamic> getEssentials() => {'count': rawItems.length};
+
+  factory LibzwResvCache.fromJson(Map<String, dynamic> json) => LibzwResvCache(
+        rawItems: (json['rawItems'] as List<dynamic>?)
+                ?.whereType<Map>()
+                .map((e) => e.cast<String, dynamic>())
+                .toList() ??
+            [],
+      );
+
+  @override
+  Map<String, dynamic> toJson() => {'rawItems': rawItems};
 }
 
 /// 研修间类型（二层研修小间 / 四层南北研修室 等）

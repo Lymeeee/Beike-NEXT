@@ -1,12 +1,17 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '/pages/net/traffic/dial.dart';
 import '/services/provider.dart';
+import '/services/update/service.dart';
 import '/services/widget_updater.dart';
 import '/main.dart';
 import '/types/preferences.dart';
 import '/utils/haptic.dart';
+import '/utils/meta_info.dart';
+import '/utils/navigation.dart';
 import '/types/courses.dart';
+import 'update_dialog.dart';
 
 const _accentPresets = [
   null,
@@ -36,7 +41,9 @@ class _SettingsPageState extends State<SettingsPage> {
   );
 
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
+  final UpdateService _updateService = UpdateService();
   bool _isClearingData = false;
+  bool _isCheckingUpdate = false;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +77,12 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
           const SizedBox(height: 24),
           _buildDataSection(),
+          const SizedBox(height: 16),
+          _buildUpdateTile(),
+          const SizedBox(height: 16),
+          _buildNetworkTestTile(),
+          const SizedBox(height: 16),
+          _buildAboutTile(),
         ],
       ),
     );
@@ -426,6 +439,177 @@ class _SettingsPageState extends State<SettingsPage> {
               },
               icon: const Icon(Icons.battery_saver, size: 18),
               label: const Text('设置'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUpdateTile() {
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '更新',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '当前构建 v${MetaInfo.instance.appVersion}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            FilledButton.tonalIcon(
+              onPressed: _isCheckingUpdate
+                  ? null
+                  : () {
+                      Haptics.light();
+                      _checkUpdate();
+                    },
+              icon: _isCheckingUpdate
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.system_update_alt, size: 18),
+              label: const Text('检查'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _checkUpdate() async {
+    setState(() => _isCheckingUpdate = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final current = normalizeVersion(MetaInfo.instance.appVersion);
+
+    try {
+      final release = await _updateService.fetchLatestRelease();
+      if (!mounted) return;
+      if (current.isEmpty) {
+        messenger.showSnackBar(const SnackBar(content: Text('无法读取当前版本号')));
+        return;
+      }
+      if (release == null || !isNewerVersion(release.version, current)) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('已是最新版本')),
+        );
+        return;
+      }
+      await showUpdateAvailableDialog(
+        context,
+        release: release,
+        currentVersion: current,
+      );
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('检查更新失败，请确认网络后重试')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingUpdate = false);
+    }
+  }
+
+  Widget _buildAboutTile() {
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '关于',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '关于作者和他的APP',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Haptics.light();
+                pushPathGuarded(context, '/more/about');
+              },
+              icon: const Icon(Icons.info_outline, size: 18),
+              label: const Text('查看'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNetworkTestTile() {
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '网络测试',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '测试网络连通性与出口延迟',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Haptics.light();
+                showNetDialDialog(context);
+              },
+              icon: const Icon(Icons.speed, size: 18),
+              label: const Text('启动'),
             ),
           ],
         ),

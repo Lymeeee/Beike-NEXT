@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '/services/provider.dart';
 import '/types/library.dart';
 
 /// 图书馆业务接口异常（携带服务端 message 与 code）
@@ -199,10 +202,54 @@ class LibraryService extends ChangeNotifier {
       'page': '$page',
       'pageNum': '$pageNum',
     });
-    return (data as List)
-        .map((e) => LibzwReservation.fromJson((e as Map).cast<String, dynamic>()))
-        .toList();
+    final raw = (data as List).whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+    _saveResvCache(raw);
+    return raw.map(LibzwReservation.fromJson).toList();
   }
+
+  // ---- 首页卡片缓存：最近一次成功拉取的预约列表副本 ----
+
+  /// 读取缓存的预约（无缓存/文件损坏时返回空表）
+  List<LibzwReservation> readCachedReservations() {
+    try {
+      final cache = ServiceProvider.instance.storeService
+          .getPref<LibzwResvCache>(LibzwResvCache.storeKey, LibzwResvCache.fromJson);
+      return cache?.toReservations() ?? const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// 预约变动后刷新缓存（登录后/写操作成功后调用，用户操作触发的低频请求）
+  Future<void> refreshResvCache() async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      await getMyReservations(
+        beginDateDash: _dashYmd(today),
+        endDateDash: _dashYmd(today.add(const Duration(days: 1))),
+      );
+    } catch (_) {
+      // 刷新失败不影响调用方，保留旧缓存
+    }
+  }
+
+  /// 退出登录时清除缓存
+  void clearResvCache() {
+    try {
+      ServiceProvider.instance.storeService.delPref(LibzwResvCache.storeKey);
+    } catch (_) {}
+  }
+
+  void _saveResvCache(List<Map<String, dynamic>> rawItems) {
+    try {
+      ServiceProvider.instance.storeService
+          .putPref<LibzwResvCache>(LibzwResvCache.storeKey, LibzwResvCache(rawItems: rawItems));
+    } catch (_) {}
+  }
+
+  static String _dashYmd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Future<int> getResvCount() async {
     final data = await _request('GET', '/reserve/count');
@@ -247,6 +294,7 @@ class LibraryService extends ChangeNotifier {
       },
     };
     final map = await _requestRaw('POST', '/reserve', params: params);
+    unawaited(refreshResvCache());
     return '${map['message'] ?? '预约成功'}';
   }
 
@@ -254,6 +302,7 @@ class LibraryService extends ChangeNotifier {
   Future<String> tempLeave(int resvId) async {
     final map = await _requestRaw('POST', '/seatOperation/tempLeave',
         params: {'resvId': resvId});
+    unawaited(refreshResvCache());
     return '${map['message'] ?? '操作成功'}';
   }
 
@@ -261,18 +310,21 @@ class LibraryService extends ChangeNotifier {
   Future<String> endReserve(int resvId) async {
     final map =
         await _requestRaw('POST', '/reserve/endReserve', params: {'resvId': resvId});
+    unawaited(refreshResvCache());
     return '${map['message'] ?? '操作成功'}';
   }
 
   /// 提前结束
   Future<String> endAhaed(String uuid) async {
     final map = await _requestRaw('POST', '/reserve/endAhaed', params: {'uuid': uuid});
+    unawaited(refreshResvCache());
     return '${map['message'] ?? '操作成功'}';
   }
 
   /// 删除/取消预约
   Future<String> deleteReservation(String uuid) async {
     final map = await _requestRaw('POST', '/reserve/delete', params: {'uuid': uuid});
+    unawaited(refreshResvCache());
     return '${map['message'] ?? '操作成功'}';
   }
 

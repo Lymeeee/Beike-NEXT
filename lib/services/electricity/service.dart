@@ -36,7 +36,9 @@ class ElectricityService {
       if (remain != null) return remain;
     }
 
-    throw Exception(json['message'] ?? '无法解析电表数据');
+    final message = json['message']?.toString();
+    if (message != null && message.isNotEmpty) throw Exception(message);
+    throw Exception('未查询到电量数据，请确认电表号是否正确');
   }
 
   // ---- Ammeter number persistence ----
@@ -84,36 +86,27 @@ class ElectricityService {
     return [];
   }
 
-  /// Query the API and record the result. If today's data already exists, returns
-  /// the cached history without making a new API call.
+  /// Query the API and record the result. Re-querying on the same day updates
+  /// today's record instead of appending a duplicate.
   Future<({List<RemainingElectricity> history, String message})> fetchAndRecord(
       int ammeterNumber) async {
     final history = await getHistory(ammeterNumber);
-
-    // Check if we already have data for today
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    if (history.isNotEmpty) {
-      final lastRecordDate = DateTime(
-        history.last.date.year,
-        history.last.date.month,
-        history.last.date.day,
-      );
-      if (lastRecordDate == today) {
-        return (history: history, message: '今日已经获取过电表数据，明天再来吧');
-      }
-    }
 
-    // Query the API
     final remain = await queryAmmeter(ammeterNumber);
 
-    // Calculate average daily consumption
+    final hasToday = history.isNotEmpty && _dayOf(history.last.date) == today;
+    final previousIndex = hasToday ? history.length - 2 : history.length - 1;
+    final previous = previousIndex >= 0 ? history[previousIndex] : null;
+
+    // Calculate average daily consumption against the last record of a
+    // previous day.
     double average = 0.0;
-    if (history.isNotEmpty) {
-      final last = history.last;
-      final daysDiff = now.difference(last.date).inDays;
+    if (previous != null) {
+      final daysDiff = today.difference(_dayOf(previous.date)).inDays;
       if (daysDiff > 0) {
-        average = (last.remain - remain) / daysDiff;
+        average = (previous.remain - remain) / daysDiff;
       }
     }
 
@@ -123,12 +116,18 @@ class ElectricityService {
       average: average,
     );
 
-    history.add(entry);
+    if (hasToday) {
+      history[history.length - 1] = entry;
+    } else {
+      history.add(entry);
+    }
 
     // Persist
     final file = await _historyFile(ammeterNumber);
     await file.writeAsString(jsonEncode(history.map((e) => e.toJson()).toList()));
 
-    return (history: history, message: '获取成功');
+    return (history: history, message: hasToday ? '今日数据已更新' : '获取成功');
   }
+
+  DateTime _dayOf(DateTime date) => DateTime(date.year, date.month, date.day);
 }

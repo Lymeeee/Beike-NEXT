@@ -22,7 +22,6 @@ class _ElectricityPageState extends State<ElectricityPage>
   int? _ammeterNumber;
   List<RemainingElectricity> _history = [];
   String? _message;
-  bool _hasQueried = false;
 
   @override
   void onServiceInit() {
@@ -37,12 +36,14 @@ class _ElectricityPageState extends State<ElectricityPage>
 
   Future<void> _loadSavedAmmeter() async {
     final saved = await _service.getSavedAmmeterNumber();
-    if (saved != null && mounted) {
-      setState(() {
-        _ammeterNumber = saved;
-        _ammeterController.text = saved.toString();
-      });
-    }
+    if (saved == null) return;
+    final history = await _service.getHistory(saved);
+    if (!mounted) return;
+    setState(() {
+      _ammeterNumber = saved;
+      _ammeterController.text = saved.toString();
+      _history = history;
+    });
   }
 
   Future<void> _saveAndQuery() async {
@@ -68,7 +69,10 @@ class _ElectricityPageState extends State<ElectricityPage>
 
     await _service.saveAmmeterNumber(number);
     if (mounted) {
-      setState(() => _ammeterNumber = number);
+      setState(() {
+        if (number != _ammeterNumber) _history = [];
+        _ammeterNumber = number;
+      });
     }
     await _doQuery(number);
   }
@@ -81,14 +85,12 @@ class _ElectricityPageState extends State<ElectricityPage>
         setState(() {
           _history = result.history;
           _message = result.message;
-          _hasQueried = true;
         });
         setLoading(false);
       }
     } catch (e) {
       if (mounted) {
         setError('查询失败: $e');
-        setState(() => _hasQueried = true);
       }
     }
   }
@@ -111,7 +113,7 @@ class _ElectricityPageState extends State<ElectricityPage>
               const SizedBox(height: 20),
               const Center(child: CircularProgressIndicator()),
             ] else ...[
-              if (_hasQueried && _history.isNotEmpty) ...[
+              if (_history.isNotEmpty) ...[
                 _buildCurrentCard(),
                 if (_message != null) ...[
                   const SizedBox(height: 20),
@@ -215,42 +217,56 @@ class _ElectricityPageState extends State<ElectricityPage>
     final theme = Theme.of(context);
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: theme.colorScheme.primaryContainer,
       ),
       padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text(
-              '$_ammeterNumber',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onPrimaryContainer
-                    .withValues(alpha: 0.7),
-              ),
+      child: Column(
+        children: [
+          Text(
+            '${last.remain}',
+            style: TextStyle(
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimaryContainer,
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${last.remain}',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '剩余电量 (kWh)',
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.colorScheme.onPrimaryContainer
+                  .withValues(alpha: 0.7),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '剩余电量 (kWh)',
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onPrimaryContainer
-                    .withValues(alpha: 0.7),
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _formatUpdatedAt(last.date),
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onPrimaryContainer
+                  .withValues(alpha: 0.6),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
+  }
+
+  String _formatUpdatedAt(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(date.year, date.month, date.day);
+    final time = '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+    if (day == today) return '更新于 今天 $time';
+    if (day == DateTime(now.year, now.month, now.day - 1)) {
+      return '更新于 昨天 $time';
+    }
+    return '更新于 ${date.month}月${date.day}日 $time';
   }
 
   Widget _buildChart() {

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:auto_route/auto_route.dart';
 import '/utils/page_mixins.dart';
 import '/utils/haptic.dart';
 import '/utils/navigation.dart';
@@ -97,7 +96,7 @@ class _HomePageState extends State<HomePage>
     _FeatureCardConfig(
       title: '流量查询',
       description: '查看流量与费用明细',
-      icon: Icons.swap_horiz,
+      icon: Icons.swap_vert,
       color: (c) => Theme.of(c).colorScheme.primary,
       route: '/net/traffic',
     ),
@@ -282,7 +281,8 @@ class _HomePageState extends State<HomePage>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   /// 拉取今明两天未结束的图书馆预约（座位 + 研修间），用于首页卡片展示。
-  /// 未登录/网络异常时保持现状；仅读取已有会话，不做登录恢复。
+  /// 先展示本地缓存（登录后/预约变动时更新），再尝试联网刷新；
+  /// 登录过期或网络异常时保留缓存展示，不打断使用。
   Future<void> _loadLibraryReservations() async {
     if (_libraryFetching) return;
     final saved = serviceProvider.storeService
@@ -296,29 +296,37 @@ class _HomePageState extends State<HomePage>
 
     _libraryFetching = true;
     try {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final dayAfterTomorrow = today.add(const Duration(days: 2));
+      // 缓存先上屏，联网结果随后覆盖
+      final cached = _cardReservations(_libraryService.readCachedReservations());
+      if (mounted) setState(() => _libraryReservations = cached);
+
       _libraryService.applySession(saved);
       final list = await _libraryService.getMyReservations(
-        beginDateDash: _dashYmd(today),
-        endDateDash: _dashYmd(today.add(const Duration(days: 1))),
+        beginDateDash: _dashYmd(DateTime.now()),
+        endDateDash: _dashYmd(DateTime.now().add(const Duration(days: 1))),
       );
-      final items = list
-          .where((r) =>
-              !r.isEnded &&
-              r.begin != null &&
-              r.end != null &&
-              r.end!.isAfter(now) &&
-              r.begin!.isBefore(dayAfterTomorrow))
-          .toList()
-        ..sort((a, b) => a.begin!.compareTo(b.begin!));
-      if (mounted) setState(() => _libraryReservations = items);
+      if (mounted) setState(() => _libraryReservations = _cardReservations(list));
     } catch (_) {
-      // 会话失效或网络异常：保留现有显示
+      // 登录过期/网络异常：保留缓存展示
     } finally {
       _libraryFetching = false;
     }
+  }
+
+  /// 卡片口径：今明两天、未结束且尚未到期的预约，按开始时间排序
+  List<LibzwReservation> _cardReservations(List<LibzwReservation> list) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dayAfterTomorrow = today.add(const Duration(days: 2));
+    return list
+        .where((r) =>
+            !r.isEnded &&
+            r.begin != null &&
+            r.end != null &&
+            r.end!.isAfter(now) &&
+            r.begin!.isBefore(dayAfterTomorrow))
+        .toList()
+      ..sort((a, b) => a.begin!.compareTo(b.begin!));
   }
 
   /// 从子页面返回首页（路由重新可见）时刷新图书馆预约

@@ -313,10 +313,10 @@ class _FamilyCurriculumDialogState extends State<_FamilyCurriculumDialog> {
                       child: FilledButton.tonalIcon(
                         onPressed: () {
                           Haptics.medium();
-                          _import();
+                          _export();
                         },
-                        icon: const Icon(Icons.file_download_outlined, size: 18),
-                        label: const Text('导入课表'),
+                        icon: const Icon(Icons.file_upload_outlined, size: 18),
+                        label: const Text('导出课表'),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -326,10 +326,10 @@ class _FamilyCurriculumDialogState extends State<_FamilyCurriculumDialog> {
                       child: FilledButton.tonalIcon(
                         onPressed: () {
                           Haptics.medium();
-                          _export();
+                          _import();
                         },
-                        icon: const Icon(Icons.file_upload_outlined, size: 18),
-                        label: const Text('导出课表'),
+                        icon: const Icon(Icons.file_download_outlined, size: 18),
+                        label: const Text('导入课表'),
                       ),
                     ),
                   ],
@@ -351,14 +351,6 @@ class _FamilyCurriculumDialogState extends State<_FamilyCurriculumDialog> {
                 )
               else ...[
                 for (final item in _items) _buildItem(theme, item),
-                const SizedBox(height: 10),
-                Text(
-                  '点击查看课表 · 长按可置顶 / 重命名 / 删除',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.outline,
-                  ),
-                ),
                 const SizedBox(height: 6),
               ],
             ],

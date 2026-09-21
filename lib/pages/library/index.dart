@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '/services/library/service.dart';
@@ -58,12 +60,14 @@ class _LibraryPageState extends State<LibraryPage>
     try {
       final saved = _readStored();
       if (saved != null) {
-        await _service.restore(saved);
+        final ok = await _service.restore(saved);
         // token 可能被刷新过，回写持久化
         final session = _service.session;
         if (session != null && session != saved) {
           serviceProvider.storeService.putConfig(LibzwSession.storeKey, session);
         }
+        // 登录态就绪后留存一份预约缓存，供首页卡片离线展示
+        if (ok) unawaited(_service.refreshResvCache());
       }
     } catch (_) {
       // 恢复失败按未登录处理
@@ -86,6 +90,7 @@ class _LibraryPageState extends State<LibraryPage>
     try {
       serviceProvider.storeService.putConfig(LibzwSession.storeKey, merged);
     } catch (_) {}
+    unawaited(_service.refreshResvCache());
     if (mounted) setState(() {});
   }
 
@@ -110,6 +115,8 @@ class _LibraryPageState extends State<LibraryPage>
     );
     if (ok != true) return;
     _service.applySession(null);
+    // 缓存属于账号数据，退出时一并清除
+    _service.clearResvCache();
     try {
       // 退出登录保留手机号（与教务一致），下次登录框仍预填
       final phone = _readStored()?.lastSmsPhone;

@@ -10,7 +10,6 @@ import 'dialog_device_show.dart';
 import 'dialog_device_add.dart';
 import 'dialog_plan_show.dart';
 import 'dialog_change_max_consume.dart';
-import '/pages/net/traffic/dial.dart';
 import '/utils/haptic.dart';
 
 class NetDashboardPage extends StatefulWidget {
@@ -181,19 +180,6 @@ class _NetDashboardPageState extends State<NetDashboardPage>
     await showDialog(
       context: context,
       builder: (context) => NetPlanShowDialog(userInfo: _userInfo!),
-    );
-  }
-
-  void _showDialDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        contentPadding: EdgeInsets.zero,
-        content: SizedBox(
-          width: 420,
-          child: NetDialDrawer(),
-        ),
-      ),
     );
   }
 
@@ -659,12 +645,6 @@ class _NetDashboardPageState extends State<NetDashboardPage>
                     '修改密码',
                     (_isLoggingOut ? null : _showChangePasswordDialog)
                         as VoidCallback?,
-                  ),
-                  (
-                    Icons.speed,
-                    '拨测',
-                    '网络诊断',
-                    _showDialDialog as VoidCallback?,
                   ),
                 ];
 

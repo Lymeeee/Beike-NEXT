@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:auto_route/auto_route.dart';
 import '/services/provider.dart';
 import '/types/courses.dart';
 import '/types/preferences.dart';
@@ -303,19 +302,23 @@ class _CurriculumPageState extends State<CurriculumPage>
                 ),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Haptics.light();
-                      _showSwitchTermDialog();
-                    },
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('刷新课表'),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Tooltip(
+                    message: '刷新课表',
+                    child: FilledButton(
+                      onPressed: () {
+                        Haptics.light();
+                        _showSwitchTermDialog();
+                      },
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        minimumSize: const Size(40, 40),
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      child: const Icon(Icons.refresh, size: 18),
                     ),
                   ),
                 ),
