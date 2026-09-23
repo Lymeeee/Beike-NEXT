@@ -167,6 +167,7 @@ class ServiceProvider extends ChangeNotifier {
         AppSettings(
           themeMode: appSettings!.themeMode,
           accentColorValue: appSettings.accentColorValue,
+          secondaryAccentColorValue: appSettings.secondaryAccentColorValue,
           holidayMode: false,
           examMode: false,
         ),

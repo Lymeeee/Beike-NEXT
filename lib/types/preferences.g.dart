@@ -68,6 +68,8 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) =>
     AppSettings(
         themeMode: $enumDecode(_$ThemeModeEnumMap, json['themeMode']),
         accentColorValue: (json['accentColor'] as num?)?.toInt(),
+        secondaryAccentColorValue: (json['secondaryAccentColor'] as num?)
+            ?.toInt(),
         holidayMode: json['holidayMode'] as bool? ?? false,
         hapticFeedbackEnabled: json['hapticFeedbackEnabled'] as bool? ?? true,
         examMode: json['examMode'] as bool? ?? false,
@@ -85,6 +87,7 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       ),
       'themeMode': _$ThemeModeEnumMap[instance.themeMode]!,
       'accentColor': instance.accentColorValue,
+      'secondaryAccentColor': instance.secondaryAccentColorValue,
       'holidayMode': instance.holidayMode,
       'hapticFeedbackEnabled': instance.hapticFeedbackEnabled,
       'examMode': instance.examMode,
@@ -95,4 +98,3 @@ const _$ThemeModeEnumMap = {
   ThemeMode.light: 'light',
   ThemeMode.dark: 'dark',
 };
-

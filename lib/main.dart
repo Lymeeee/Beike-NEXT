@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'services/provider.dart';
 import 'types/preferences.dart';
+import 'types/theme_cache.dart';
 import 'utils/meta_info.dart';
 import 'router.dart';
 
@@ -27,20 +28,24 @@ void main() async {
 class ThemeManager {
   static ThemeMode _currentThemeMode = ThemeMode.system;
   static Color? _currentAccentColor;
+  static Color? _currentSecondaryAccentColor;
   static void Function(ThemeMode)? _updateCallback;
-  static void Function(Color?)? _accentColorCallback;
+  static void Function(Color?, Color?)? _accentColorCallback;
 
   static ThemeMode get currentThemeMode => _currentThemeMode;
   static Color? get currentAccentColor => _currentAccentColor;
+  static Color? get currentSecondaryAccentColor => _currentSecondaryAccentColor;
 
   static void initialize(
     ThemeMode initialMode,
     Color? initialAccentColor,
+    Color? initialSecondaryAccentColor,
     void Function(ThemeMode) updateCallback,
-    void Function(Color?) accentColorCallback,
+    void Function(Color?, Color?) accentColorCallback,
   ) {
     _currentThemeMode = initialMode;
     _currentAccentColor = initialAccentColor;
+    _currentSecondaryAccentColor = initialSecondaryAccentColor;
     _updateCallback = updateCallback;
     _accentColorCallback = accentColorCallback;
   }
@@ -50,9 +55,10 @@ class ThemeManager {
     _updateCallback?.call(themeMode);
   }
 
-  static void updateAccentColor(Color? color) {
+  static void updateAccentColor(Color? color, Color? secondaryColor) {
     _currentAccentColor = color;
-    _accentColorCallback?.call(color);
+    _currentSecondaryAccentColor = secondaryColor;
+    _accentColorCallback?.call(color, secondaryColor);
   }
 }
 
@@ -67,6 +73,10 @@ class _MainState extends State<Main> {
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
   late ThemeMode _themeMode;
   Color? _accentColor;
+  Color? _secondaryAccentColor;
+  CachedDynamicScheme? _cachedDynamicScheme;
+  ColorScheme? _cachedLightScheme;
+  ColorScheme? _cachedDarkScheme;
 
   _MainState() {
     final appSettings =
@@ -75,19 +85,31 @@ class _MainState extends State<Main> {
 
     _themeMode = appSettings?.themeMode ?? ThemeMode.system;
     _accentColor = appSettings?.accentColor;
+    _secondaryAccentColor = appSettings?.secondaryAccentColor;
+    _cachedDynamicScheme = _serviceProvider.storeService
+        .getConfig<CachedDynamicScheme>(
+          'cached_dynamic_scheme',
+          CachedDynamicScheme.fromJson,
+        );
+    _cachedLightScheme = _cachedDynamicScheme?.schemeFor(Brightness.light);
+    _cachedDarkScheme = _cachedDynamicScheme?.schemeFor(Brightness.dark);
 
     _updateStatusBarStyle(_themeMode);
 
     ThemeManager.initialize(
       _themeMode,
       _accentColor,
+      _secondaryAccentColor,
       (ThemeMode themeMode) {
         setState(() => _themeMode = themeMode);
         _updateStatusBarStyle(themeMode);
         _persistSettings();
       },
-      (Color? accentColor) {
-        setState(() => _accentColor = accentColor);
+      (Color? accentColor, Color? secondaryAccentColor) {
+        setState(() {
+          _accentColor = accentColor;
+          _secondaryAccentColor = secondaryAccentColor;
+        });
         _persistSettings();
       },
     );
@@ -114,6 +136,8 @@ class _MainState extends State<Main> {
     final appSettings = AppSettings(
       themeMode: _themeMode,
       accentColorValue: _accentColor?.toARGB32(),
+      secondaryAccentColorValue: _secondaryAccentColor?.toARGB32(),
+      holidayMode: existing?.holidayMode ?? false,
       hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
       examMode: existing?.examMode ?? false,
     );
@@ -260,27 +284,78 @@ class _MainState extends State<Main> {
     );
   }
 
+  // 双拼预设：副色种子单独推一套方案，只顶替 secondary/tertiary 这一族，
+  // 让主色管主体、副色管点缀，保持 M3 的明度关系不被原始色值破坏
+  ColorScheme _withSecondaryAccent(ColorScheme scheme, Brightness brightness) {
+    final secondarySeed = _secondaryAccentColor;
+    if (secondarySeed == null) return scheme;
+    final accent = ColorScheme.fromSeed(
+      seedColor: secondarySeed,
+      brightness: brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
+    );
+    return scheme.copyWith(
+      secondary: accent.secondary,
+      onSecondary: accent.onSecondary,
+      secondaryContainer: accent.secondaryContainer,
+      onSecondaryContainer: accent.onSecondaryContainer,
+      tertiary: accent.tertiary,
+      onTertiary: accent.onTertiary,
+      tertiaryContainer: accent.tertiaryContainer,
+      onTertiaryContainer: accent.onTertiaryContainer,
+    );
+  }
+
+  /// 动态配色还没回包时用上次缓存顶上，避免冷启动首帧闪默认色
+  ColorScheme _pickScheme(
+    ColorScheme? dynamic,
+    ColorScheme? cached,
+    Brightness brightness,
+  ) {
+    if (_accentColor != null) {
+      return ColorScheme.fromSeed(
+        seedColor: _effectiveSeedColor,
+        brightness: brightness,
+        dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
+      );
+    }
+    return dynamic ??
+        cached ??
+        ColorScheme.fromSeed(
+          seedColor: _effectiveSeedColor,
+          brightness: brightness,
+          dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
+        );
+  }
+
+  void _cacheDynamicSchemes(ColorScheme light, ColorScheme dark) {
+    final next = CachedDynamicScheme.fromSchemes(light, dark);
+    if (next == _cachedDynamicScheme) return;
+    _cachedDynamicScheme = next;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _serviceProvider.storeService.putConfig<CachedDynamicScheme>(
+        'cached_dynamic_scheme',
+        next,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-        final seed = _effectiveSeedColor;
-        final hasCustomAccent = _accentColor != null;
+        if (_accentColor == null && lightDynamic != null && darkDynamic != null) {
+          _cacheDynamicSchemes(lightDynamic, darkDynamic);
+        }
 
-        final lightScheme = (hasCustomAccent || lightDynamic == null)
-            ? ColorScheme.fromSeed(
-                seedColor: seed,
-                brightness: Brightness.light,
-                dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
-              )
-            : lightDynamic;
-        final darkScheme = (hasCustomAccent || darkDynamic == null)
-            ? ColorScheme.fromSeed(
-                seedColor: seed,
-                brightness: Brightness.dark,
-                dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
-              )
-            : darkDynamic;
+        final lightScheme = _withSecondaryAccent(
+          _pickScheme(lightDynamic, _cachedLightScheme, Brightness.light),
+          Brightness.light,
+        );
+        final darkScheme = _withSecondaryAccent(
+          _pickScheme(darkDynamic, _cachedDarkScheme, Brightness.dark),
+          Brightness.dark,
+        );
 
         return MaterialApp.router(
           title: 'Beike NEXT',

@@ -234,6 +234,7 @@ class _CurriculumPageState extends State<CurriculumPage>
         AppSettings(
           themeMode: appSettings!.themeMode,
           accentColorValue: appSettings.accentColorValue,
+          secondaryAccentColorValue: appSettings.secondaryAccentColorValue,
           holidayMode: false,
           examMode: false,
         ),

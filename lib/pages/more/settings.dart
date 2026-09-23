@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/pages/net/traffic/dial.dart';
@@ -13,19 +14,34 @@ import '/utils/navigation.dart';
 import '/types/courses.dart';
 import 'update_dialog.dart';
 
-const _accentPresets = [
-  null,
-  Color(0xFF005B94), // 北科蓝
-  Color(0xFF9BABB8), // 灰蓝
-  Color(0xFFA3B0A1), // 鼠尾草绿
-  Color(0xFFC2AEA6), // 烟灰粉
-  Color(0xFFB4ADBC), // 薰衣草灰
-  Color(0xFFBBAFA0), // 暖灰褐
-  Color(0xFF9AB5AF), // 雾蓝绿
-  Color(0xFFAEA3B9), // 紫藤灰
-  Color(0xFFABB09B), // 橄榄灰
-  Color(0xFF93AAB5), // 雾霾蓝
-  Color(0xFFC59D90), // 陶土粉
+class _AccentPreset {
+  /// [primary] 为空表示跟随系统动态取色；[secondary] 非空表示双拼预设
+  const _AccentPreset(this.primary, [this.secondary]);
+
+  final Color? primary;
+  final Color? secondary;
+}
+
+// 前两行：动态取色 + 单色（莫兰迪按色相由暖到冷排列）；第三行：主题双拼
+const _accentPresets = <_AccentPreset>[
+  _AccentPreset(null),
+  _AccentPreset(Color(0xFF005B94)), // 北科蓝
+  _AccentPreset(Color(0xFFC9A6A1)), // 灰玫瑰
+  _AccentPreset(Color(0xFFC5A08E)), // 陶土
+  _AccentPreset(Color(0xFFD3C3AC)), // 暖沙
+  _AccentPreset(Color(0xFFC4BC96)), // 芥末灰
+  _AccentPreset(Color(0xFFAEB38F)), // 橄榄灰
+  _AccentPreset(Color(0xFF9DB49E)), // 鼠尾草绿
+  _AccentPreset(Color(0xFF93B5AF)), // 雾青
+  _AccentPreset(Color(0xFF93A9BE)), // 雾霾蓝
+  _AccentPreset(Color(0xFFA5A3C6)), // 灰紫
+  _AccentPreset(Color(0xFFBBA1B6)), // 藕荷紫
+  _AccentPreset(Color(0xFFA55D4A), Color(0xFFDFD5A4)), // 新年 朱红 + 亮金
+  _AccentPreset(Color(0xFF704E7E), Color(0xFFAE7447)), // 万圣节 巫紫 + 南瓜琥珀
+  _AccentPreset(Color(0xFF8C3644), Color(0xFF4B6C5B)), // 圣诞节 圣诞红 + 松针绿
+  _AccentPreset(Color(0xFFB8C9D5), Color(0xFFEBEDEF)), // 冬至 冰川蓝 + 月白
+  _AccentPreset(Color(0xFF404B68), Color(0xFFBFA269)), // 中秋 夜空蓝 + 桂月黄
+  _AccentPreset(Color(0xFFDEBAC5), Color(0xFFB1CB9F)), // 樱花季 樱粉 + 嫩柳
 ];
 
 class SettingsPage extends StatefulWidget {
@@ -35,7 +51,7 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver {
   static const _noBorderShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(12)),
   );
@@ -44,6 +60,47 @@ class _SettingsPageState extends State<SettingsPage> {
   final UpdateService _updateService = UpdateService();
   bool _isClearingData = false;
   bool _isCheckingUpdate = false;
+  bool? _isIgnoringBatteryOptimization;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isAndroid) {
+      WidgetsBinding.instance.addObserver(this);
+      _refreshBatteryOptimizationState();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isAndroid) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 从系统授权弹窗回到应用时重新查询，已关闭优化就隐藏整项
+    if (state == AppLifecycleState.resumed) {
+      _refreshBatteryOptimizationState();
+    }
+  }
+
+  Future<void> _refreshBatteryOptimizationState() async {
+    try {
+      final ignoring =
+          await _batteryChannel.invokeMethod<bool>('isIgnoringBatteryOptimizations');
+      if (mounted) {
+        setState(() => _isIgnoringBatteryOptimization = ignoring ?? false);
+      }
+    } catch (_) {
+      // 查询失败时保留入口，不因为异常把设置项藏掉
+      if (mounted) {
+        setState(() => _isIgnoringBatteryOptimization = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,16 +128,16 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 16),
             _buildSummerTermStartDateCard(),
           ],
-          if (Platform.isAndroid) ...[
-            const SizedBox(height: 16),
-            _buildBatteryOptimizationTile(),
-          ],
           const SizedBox(height: 24),
-          _buildDataSection(),
+          if (Platform.isAndroid && _isIgnoringBatteryOptimization != true) ...[
+            _buildBatteryOptimizationTile(),
+            const SizedBox(height: 16),
+          ],
+          _buildNetworkTestTile(),
           const SizedBox(height: 16),
           _buildUpdateTile(),
           const SizedBox(height: 16),
-          _buildNetworkTestTile(),
+          _buildDataSection(),
           const SizedBox(height: 16),
           _buildAboutTile(),
         ],
@@ -120,44 +177,97 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAccentColorPicker() {
-    final currentColor = ThemeManager.currentAccentColor;
-    final theme = Theme.of(context);
+    const spacing = 10.0;
+    const perRow = 6;
+    const maxDiameter = 40.0;
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: _accentPresets.map((color) {
-        final isSelected =
-            (color == null && currentColor == null) ||
-            (color != null &&
-                currentColor != null &&
-                color.toARGB32() == currentColor.toARGB32());
-
-        return GestureDetector(
-          onTap: () {
-            Haptics.selection();
-            ThemeManager.updateAccentColor(color);
-            setState(() {});
-          },
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: isSelected
-                  ? Border.all(color: theme.colorScheme.primary, width: 3)
-                  : Border.all(
-                      color: theme.colorScheme.outlineVariant,
-                      width: 1.5,
-                    ),
-              color: color,
-            ),
-            child: color == null
-                ? Icon(Icons.auto_awesome, size: 20, color: theme.colorScheme.primary)
-                : null,
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 每行固定 6 个：超宽屏保持原尺寸，窄屏按可用宽度等比缩小
+        final width = math.min(
+          constraints.maxWidth,
+          maxDiameter * perRow + spacing * (perRow - 1),
         );
-      }).toList(),
+        final diameter = math.min(
+          (width - spacing * (perRow - 1)) / perRow,
+          maxDiameter,
+        );
+
+        final rows = <Widget>[];
+        for (var start = 0; start < _accentPresets.length; start += perRow) {
+          final end = math.min(start + perRow, _accentPresets.length);
+          rows.add(
+            Padding(
+              padding: EdgeInsets.only(top: start == 0 ? 0 : spacing),
+              child: Row(
+                children: [
+                  for (var i = start; i < end; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        right: i == end - 1 ? 0 : spacing,
+                      ),
+                      child: _buildAccentDot(_accentPresets[i], diameter),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: rows,
+        );
+      },
+    );
+  }
+
+  Widget _buildAccentDot(_AccentPreset preset, double diameter) {
+    final theme = Theme.of(context);
+    final primary = preset.primary;
+    final secondary = preset.secondary;
+    final isSelected =
+        primary?.toARGB32() == ThemeManager.currentAccentColor?.toARGB32() &&
+        secondary?.toARGB32() ==
+            ThemeManager.currentSecondaryAccentColor?.toARGB32();
+
+    return GestureDetector(
+      onTap: () {
+        Haptics.selection();
+        ThemeManager.updateAccentColor(primary, secondary);
+        setState(() {});
+      },
+      child: Container(
+        width: diameter,
+        height: diameter,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: isSelected
+              ? Border.all(color: theme.colorScheme.primary, width: 3)
+              : Border.all(
+                  color: theme.colorScheme.outlineVariant,
+                  width: 1.5,
+                ),
+        ),
+        child: primary == null
+            ? Icon(
+                Icons.auto_awesome,
+                size: diameter / 2,
+                color: theme.colorScheme.primary,
+              )
+            : ClipOval(
+                child: secondary == null
+                    ? ColoredBox(color: primary)
+                    : Row(
+                        // 不拉伸的话 ColoredBox 没有子节点，高度会塌成 0
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: ColoredBox(color: primary)),
+                          Expanded(child: ColoredBox(color: secondary)),
+                        ],
+                      ),
+              ),
+      ),
     );
   }
 
@@ -174,6 +284,8 @@ class _SettingsPageState extends State<SettingsPage> {
       themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
       accentColorValue:
           existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
+      secondaryAccentColorValue: existing?.secondaryAccentColorValue ??
+          ThemeManager.currentSecondaryAccentColor?.toARGB32(),
       holidayMode: existing?.holidayMode ?? false,
       hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
       examMode: value,
@@ -260,6 +372,8 @@ class _SettingsPageState extends State<SettingsPage> {
       themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
       accentColorValue:
           existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
+      secondaryAccentColorValue: existing?.secondaryAccentColorValue ??
+          ThemeManager.currentSecondaryAccentColor?.toARGB32(),
       holidayMode: value,
     );
     _serviceProvider.storeService.putPref<AppSettings>(
@@ -334,6 +448,8 @@ class _SettingsPageState extends State<SettingsPage> {
       themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
       accentColorValue:
           existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
+      secondaryAccentColorValue: existing?.secondaryAccentColorValue ??
+          ThemeManager.currentSecondaryAccentColor?.toARGB32(),
       holidayMode: existing?.holidayMode ?? false,
       hapticFeedbackEnabled: value,
     );
@@ -535,40 +651,32 @@ class _SettingsPageState extends State<SettingsPage> {
     return Card.filled(
       shape: _noBorderShape,
       margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '关于',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '关于作者和他的APP',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+      child: InkWell(
+        onTap: () {
+          Haptics.selection();
+          pushPathGuarded(context, '/more/about');
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '关于',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            FilledButton.tonalIcon(
-              onPressed: () {
-                Haptics.light();
-                pushPathGuarded(context, '/more/about');
-              },
-              icon: const Icon(Icons.info_outline, size: 18),
-              label: const Text('查看'),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                '用爱制作 By Lymeeee',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

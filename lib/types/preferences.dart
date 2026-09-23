@@ -179,6 +179,8 @@ class AppSettings extends BaseDataClass {
   ThemeMode themeMode;
   @JsonKey(name: 'accentColor')
   int? accentColorValue;
+  @JsonKey(name: 'secondaryAccentColor')
+  int? secondaryAccentColorValue;
   bool holidayMode;
   bool hapticFeedbackEnabled;
   bool examMode;
@@ -186,6 +188,7 @@ class AppSettings extends BaseDataClass {
   AppSettings({
     required this.themeMode,
     this.accentColorValue,
+    this.secondaryAccentColorValue,
     this.holidayMode = false,
     this.hapticFeedbackEnabled = true,
     this.examMode = false,
@@ -194,10 +197,15 @@ class AppSettings extends BaseDataClass {
   Color? get accentColor =>
       accentColorValue != null ? Color(accentColorValue!) : null;
 
+  Color? get secondaryAccentColor => secondaryAccentColorValue != null
+      ? Color(secondaryAccentColorValue!)
+      : null;
+
   @override
   Map<String, dynamic> getEssentials() => {
     'themeMode': themeMode,
     'accentColor': accentColorValue,
+    'secondaryAccentColor': secondaryAccentColorValue,
     'holidayMode': holidayMode,
     'hapticFeedbackEnabled': hapticFeedbackEnabled,
     'examMode': examMode,

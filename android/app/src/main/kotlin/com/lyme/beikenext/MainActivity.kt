@@ -1,6 +1,9 @@
 package com.lyme.beikenext
 
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -39,13 +42,28 @@ class MainActivity : FlutterActivity() {
             CHANNEL_BATTERY
         ).setMethodCallHandler { call, result ->
             when (call.method) {
+                "isIgnoringBatteryOptimizations" -> {
+                    val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+                    result.success(powerManager.isIgnoringBatteryOptimizations(packageName))
+                }
                 "openBatteryOptimizationSettings" -> {
+                    val request = Intent(
+                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Uri.parse("package:$packageName")
+                    )
                     try {
-                        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                        startActivity(intent)
+                        startActivity(request)
                         result.success(true)
                     } catch (e: Exception) {
-                        result.error("ERROR", e.message, null)
+                        // 部分 ROM 不支持该对话框，退回电池优化的应用列表
+                        try {
+                            startActivity(
+                                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            )
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            result.error("ERROR", e2.message, null)
+                        }
                     }
                 }
                 else -> result.notImplemented()
