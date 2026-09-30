@@ -7,6 +7,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -44,6 +46,56 @@ class UpcomingClassWidget : AppWidgetProvider() {
             prefs.edit()
                 .putString(KEY_FULL_DATA, json)
                 .apply()
+        }
+
+        // 主题色由 Flutter 侧下发，形如 {角色: [浅色, 深色]}；没下发过就沿用 XML 里的默认色
+        fun saveThemeColors(context: Context, colors: Map<*, *>) {
+            val editor = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            for ((role, value) in colors) {
+                val pair = value as? List<*> ?: continue
+                val light = (pair.getOrNull(0) as? Number)?.toInt() ?: continue
+                val dark = (pair.getOrNull(1) as? Number)?.toInt() ?: continue
+                editor.putInt("theme_${role}_light", light)
+                editor.putInt("theme_${role}_dark", dark)
+            }
+            editor.apply()
+        }
+
+        private fun isNight(context: Context): Boolean {
+            val mode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            return mode == Configuration.UI_MODE_NIGHT_YES
+        }
+
+        private fun themeColor(context: Context, role: String): Int? {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val key = "theme_${role}_" + if (isNight(context)) "dark" else "light"
+            return if (prefs.contains(key)) prefs.getInt(key, 0) else null
+        }
+
+        // 背景是圆角 shape，只能靠 backgroundTint 换色，而 RemoteViews.setColorInt
+        // 要到 Android 12 才有，低版本继续用 XML 里的默认背景；
+        // 文字色走 setTextColor，各版本通用
+        private fun applyThemeColors(context: Context, views: RemoteViews) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                themeColor(context, "background")?.let {
+                    views.setColorStateList(
+                        R.id.widget_container,
+                        "setBackgroundTintList",
+                        ColorStateList.valueOf(it),
+                    )
+                }
+            }
+            themeColor(context, "textPrimary")?.let {
+                views.setTextColor(R.id.class_name_text, it)
+            }
+            themeColor(context, "textSecondary")?.let {
+                views.setTextColor(R.id.label_text, it)
+                views.setTextColor(R.id.time_text, it)
+            }
+            themeColor(context, "textTertiary")?.let {
+                views.setTextColor(R.id.location_text, it)
+                views.setTextColor(R.id.teacher_text, it)
+            }
         }
 
         fun isHolidayMode(context: Context): Boolean {
@@ -207,6 +259,7 @@ class UpcomingClassWidget : AppWidgetProvider() {
 
         private fun buildRemoteViews(context: Context): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_upcoming_class)
+            applyThemeColors(context, views)
             fillContent(context, views)
             return views
         }

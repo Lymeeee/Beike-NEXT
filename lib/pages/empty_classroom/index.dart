@@ -128,89 +128,107 @@ class _EmptyClassroomPageState extends State<EmptyClassroomPage>
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            // Building selector
-            _FilterChip(
-              icon: Icons.apartment,
-              label: buildingName,
-              onTap: _service.isLoading
-                  ? null
-                  : (ctx) => _showPopupMenu(
-                        ctx,
-                        theme,
-                        _service.buildings
-                            .map((b) => (b.id, b.name))
-                            .toList(),
-                        _service.selectedBuildingId,
-                        (id) => _service.selectBuilding(id),
-                      ),
-            ),
-            const SizedBox(width: 8),
-            // Node selector (only in node search mode)
-            if (_service.isSearchByNode)
-              _FilterChip(
-                icon: Icons.access_time,
-                label: nodeName,
-                onTap: _service.isLoading
-                    ? null
-                    : (ctx) => _showPopupMenu(ctx,
-                          theme,
-                          [('-1', '全部节次'), ..._service.nodes.map((n) => (n.id, n.name))],
-                          _service.selectedNodeId,
-                          (id) => _service.selectNode(id),
-                        ),
-              ),
-            if (_service.isSearchByNode) const SizedBox(width: 8),
-            // Date button
-            _FilterChip(
-              icon: Icons.calendar_today,
-              label: dateLabel,
-              onTap: _service.isLoading
-                  ? null
-                  : (_) async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate:
-                            DateTime.now().subtract(const Duration(days: 30)),
-                        lastDate: DateTime.now().add(const Duration(days: 30)),
-                      );
-                      if (picked != null) {
-                        _service.selectDate(picked);
-                      }
-                    },
-            ),
-            const SizedBox(width: 8),
-            // Time filter: segmented chips
-            ..._timeFilterLabels.entries.map((entry) {
-              final id = entry.key;
-              final label = entry.value;
-              final selected = _service.timeFilterId == id;
-              return Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: FilterChip(
-                  label: Text(label, style: const TextStyle(fontSize: 13)),
-                  selected: selected,
-                  showCheckmark: false,
-                  onSelected: _service.isLoading
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // Building selector
+                _FilterChip(
+                  icon: Icons.apartment,
+                  label: buildingName,
+                  onTap: _service.isLoading
                       ? null
-                      : (_) { Haptics.selection(); _service.selectTimeFilter(id); },
-                  avatar: Icon(
-                    _timeFilterIcons[id],
-                    size: 16,
-                    color: selected
-                        ? theme.colorScheme.onSecondaryContainer
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
-                  visualDensity: VisualDensity.compact,
+                      : (ctx) => _showPopupMenu(
+                            ctx,
+                            theme,
+                            _service.buildings
+                                .map((b) => (b.id, b.name))
+                                .toList(),
+                            _service.selectedBuildingId,
+                            (id) => _service.selectBuilding(id),
+                          ),
                 ),
-              );
-            }),
-          ],
-        ),
+                const SizedBox(width: 8),
+                // Node selector (only in node search mode)
+                if (_service.isSearchByNode)
+                  _FilterChip(
+                    icon: Icons.access_time,
+                    label: nodeName,
+                    onTap: _service.isLoading
+                        ? null
+                        : (ctx) => _showPopupMenu(
+                              ctx,
+                              theme,
+                              [
+                                ('-1', '全部节次'),
+                                ..._service.nodes.map((n) => (n.id, n.name)),
+                              ],
+                              _service.selectedNodeId,
+                              (id) => _service.selectNode(id),
+                            ),
+                  ),
+                if (_service.isSearchByNode) const SizedBox(width: 8),
+                // Date button
+                _FilterChip(
+                  icon: Icons.calendar_today,
+                  label: dateLabel,
+                  onTap: _service.isLoading
+                      ? null
+                      : (_) async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now()
+                                .subtract(const Duration(days: 30)),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 30)),
+                          );
+                          if (picked != null) {
+                            _service.selectDate(picked);
+                          }
+                        },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Time filter: 时段单独一行，不和楼宇节次日期挤在一起
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _timeFilterLabels.entries.map((entry) {
+                final id = entry.key;
+                final label = entry.value;
+                final selected = _service.timeFilterId == id;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: FilterChip(
+                    label: Text(label, style: const TextStyle(fontSize: 13)),
+                    selected: selected,
+                    showCheckmark: false,
+                    onSelected: _service.isLoading
+                        ? null
+                        : (_) {
+                            Haptics.selection();
+                            _service.selectTimeFilter(id);
+                          },
+                    avatar: Icon(
+                      _timeFilterIcons[id],
+                      size: 16,
+                      color: selected
+                          ? theme.colorScheme.onSecondaryContainer
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }

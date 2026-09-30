@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'services/provider.dart';
+import 'services/widget_updater.dart';
 import 'types/preferences.dart';
 import 'types/theme_cache.dart';
 import 'utils/meta_info.dart';
@@ -77,6 +78,7 @@ class _MainState extends State<Main> {
   CachedDynamicScheme? _cachedDynamicScheme;
   ColorScheme? _cachedLightScheme;
   ColorScheme? _cachedDarkScheme;
+  String? _pushedWidgetTheme;
 
   _MainState() {
     final appSettings =
@@ -133,13 +135,10 @@ class _MainState extends State<Main> {
   void _persistSettings() {
     final existing = _serviceProvider.storeService
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    final appSettings = AppSettings(
+    final appSettings = (existing ?? AppSettings.defaultSettings).copyWith(
       themeMode: _themeMode,
       accentColorValue: _accentColor?.toARGB32(),
       secondaryAccentColorValue: _secondaryAccentColor?.toARGB32(),
-      holidayMode: existing?.holidayMode ?? false,
-      hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
-      examMode: existing?.examMode ?? false,
     );
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',
@@ -148,6 +147,9 @@ class _MainState extends State<Main> {
   }
 
   static const Color _defaultSeedColor = Color.fromRGBO(0, 91, 148, 1.0);
+
+  /// 单色预设下背景族向中性色的混合比例：底色浓度轻减（预览 k=0.3）
+  static const double _singleColorBackgroundBlend = 0.3;
 
   Color get _effectiveSeedColor => _accentColor ?? _defaultSeedColor;
 
@@ -227,6 +229,15 @@ class _MainState extends State<Main> {
       // Navigation
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: colorScheme.primaryContainer,
+        // 指示胶囊换成 primaryContainer 后，图标不能再用 M3 默认的
+        // onSecondaryContainer：深色种子下两者都深，图标会糊在胶囊里
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurfaceVariant,
+          ),
+        ),
         surfaceTintColor: Colors.transparent,
       ),
       // Dividers
@@ -284,48 +295,88 @@ class _MainState extends State<Main> {
     );
   }
 
-  // 双拼预设：副色种子单独推一套方案，只顶替 secondary/tertiary 这一族，
-  // 让主色管主体、副色管点缀，保持 M3 的明度关系不被原始色值破坏
-  ColorScheme _withSecondaryAccent(ColorScheme scheme, Brightness brightness) {
-    final secondarySeed = _secondaryAccentColor;
-    if (secondarySeed == null) return scheme;
+  // 选过预设色：点缀族（primary/secondary/tertiary 及其容器）走种子，
+  // 双拼时用副色、单色时用主色，按钮、开关、导航指示就是那个颜色本身；
+  // 背景族走主色的 vibrant 中性色——rainbow 的中性色 chroma 固定为 0，
+  // 用它推的话不管什么种子，背景都是同一片纯灰。
+  // 点缀用 content：调色板取种子自身的色度；rainbow 的 chroma 有 48，
+  // tone 90 的容器（导航指示、选中态）会亮成荧光条。
+  // 文字、图标、分隔线另用 neutral 取（中性色 chroma 2）：跟 vibrant 的
+  // chroma 10 比起来，带色相的灰会糊成脏滤镜，这几族占了界面绝大多数元素。
+  ColorScheme _seedScheme(Brightness brightness) {
     final accent = ColorScheme.fromSeed(
-      seedColor: secondarySeed,
+      seedColor: _secondaryAccentColor ?? _effectiveSeedColor,
       brightness: brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
+      dynamicSchemeVariant: DynamicSchemeVariant.content,
     );
-    return scheme.copyWith(
-      secondary: accent.secondary,
-      onSecondary: accent.onSecondary,
-      secondaryContainer: accent.secondaryContainer,
-      onSecondaryContainer: accent.onSecondaryContainer,
-      tertiary: accent.tertiary,
-      onTertiary: accent.onTertiary,
-      tertiaryContainer: accent.tertiaryContainer,
-      onTertiaryContainer: accent.onTertiaryContainer,
+    final background = ColorScheme.fromSeed(
+      seedColor: _effectiveSeedColor,
+      brightness: brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+    );
+    final neutral = ColorScheme.fromSeed(
+      seedColor: _effectiveSeedColor,
+      brightness: brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.neutral,
+    );
+    // 单色预设：背景族向中性色轻混，降低底色浓度；双拼模式保持原样
+    Color backgroundOf(Color vibrantColor, Color neutralColor) =>
+        _secondaryAccentColor == null
+            ? Color.lerp(vibrantColor, neutralColor, _singleColorBackgroundBlend)!
+            : vibrantColor;
+    return accent.copyWith(
+      surface: backgroundOf(background.surface, neutral.surface),
+      onSurface: neutral.onSurface,
+      surfaceDim: backgroundOf(background.surfaceDim, neutral.surfaceDim),
+      surfaceBright: backgroundOf(background.surfaceBright, neutral.surfaceBright),
+      surfaceContainerLowest:
+          backgroundOf(background.surfaceContainerLowest, neutral.surfaceContainerLowest),
+      surfaceContainerLow:
+          backgroundOf(background.surfaceContainerLow, neutral.surfaceContainerLow),
+      surfaceContainer:
+          backgroundOf(background.surfaceContainer, neutral.surfaceContainer),
+      surfaceContainerHigh:
+          backgroundOf(background.surfaceContainerHigh, neutral.surfaceContainerHigh),
+      surfaceContainerHighest: backgroundOf(
+          background.surfaceContainerHighest, neutral.surfaceContainerHighest),
+      onSurfaceVariant: neutral.onSurfaceVariant,
+      outline: neutral.outline,
+      outlineVariant: neutral.outlineVariant,
+      inverseSurface: backgroundOf(background.inverseSurface, neutral.inverseSurface),
+      onInverseSurface: neutral.onInverseSurface,
     );
   }
 
-  /// 动态配色还没回包时用上次缓存顶上，避免冷启动首帧闪默认色
-  ColorScheme _pickScheme(
+  /// 没选过预设色就跟随系统动态取色，动态配色还没回包时用上次缓存顶上，
+  /// 避免冷启动首帧闪默认色；平台不支持动态配色时退回默认种子色。
+  ColorScheme _resolveScheme(
     ColorScheme? dynamic,
     ColorScheme? cached,
     Brightness brightness,
   ) {
-    if (_accentColor != null) {
-      return ColorScheme.fromSeed(
-        seedColor: _effectiveSeedColor,
-        brightness: brightness,
-        dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
-      );
+    if (_accentColor != null || _secondaryAccentColor != null) {
+      return _seedScheme(brightness);
     }
-    return dynamic ??
-        cached ??
-        ColorScheme.fromSeed(
-          seedColor: _effectiveSeedColor,
-          brightness: brightness,
-          dynamicSchemeVariant: DynamicSchemeVariant.rainbow,
-        );
+    return dynamic ?? cached ?? _seedScheme(brightness);
+  }
+
+  /// 桌面小组件跟着主题配色走：每个角色给浅色和深色两个值，
+  /// 由小组件按系统的日夜模式挑用
+  void _pushWidgetTheme(ColorScheme light, ColorScheme dark) {
+    List<int> pair(Color Function(ColorScheme) pick) =>
+        [pick(light).toARGB32(), pick(dark).toARGB32()];
+    final payload = <String, List<int>>{
+      'background': pair((scheme) => scheme.surfaceContainerHighest),
+      'textPrimary': pair((scheme) => scheme.onSurface),
+      'textSecondary': pair((scheme) => scheme.onSurfaceVariant),
+      'textTertiary': pair((scheme) => scheme.outline),
+    };
+    final signature = payload.toString();
+    if (signature == _pushedWidgetTheme) return;
+    _pushedWidgetTheme = signature;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetUpdater().updateThemeColors(payload);
+    });
   }
 
   void _cacheDynamicSchemes(ColorScheme light, ColorScheme dark) {
@@ -348,14 +399,17 @@ class _MainState extends State<Main> {
           _cacheDynamicSchemes(lightDynamic, darkDynamic);
         }
 
-        final lightScheme = _withSecondaryAccent(
-          _pickScheme(lightDynamic, _cachedLightScheme, Brightness.light),
+        final lightScheme = _resolveScheme(
+          lightDynamic,
+          _cachedLightScheme,
           Brightness.light,
         );
-        final darkScheme = _withSecondaryAccent(
-          _pickScheme(darkDynamic, _cachedDarkScheme, Brightness.dark),
+        final darkScheme = _resolveScheme(
+          darkDynamic,
+          _cachedDarkScheme,
           Brightness.dark,
         );
+        _pushWidgetTheme(lightScheme, darkScheme);
 
         return MaterialApp.router(
           title: 'Beike NEXT',

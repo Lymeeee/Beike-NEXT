@@ -231,13 +231,7 @@ class _CurriculumPageState extends State<CurriculumPage>
     if (appSettings?.holidayMode == true || appSettings?.examMode == true) {
       _serviceProvider.storeService.putPref<AppSettings>(
         'app_settings',
-        AppSettings(
-          themeMode: appSettings!.themeMode,
-          accentColorValue: appSettings.accentColorValue,
-          secondaryAccentColorValue: appSettings.secondaryAccentColorValue,
-          holidayMode: false,
-          examMode: false,
-        ),
+        appSettings!.copyWith(holidayMode: false, examMode: false),
       );
     }
   }

@@ -33,6 +33,14 @@ class MainActivity : FlutterActivity() {
                 "updateUpcomingClass" -> {
                     result.success(null)
                 }
+                "updateThemeColors" -> {
+                    val colors = call.arguments as? Map<*, *>
+                    if (colors != null) {
+                        UpcomingClassWidget.saveThemeColors(this, colors)
+                        UpcomingClassWidget.updateAllWidgets(this)
+                    }
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }

@@ -19,6 +19,7 @@ import 'pages/more/settings.dart';
 import 'pages/more/about.dart';
 import 'pages/empty_classroom/index.dart';
 import 'pages/library/index.dart';
+import 'pages/cockpit/index.dart';
 
 class _BottomTab {
   final IconData icon;
@@ -56,6 +57,15 @@ Widget _slideTransitionsBuilder(
     child: child,
   );
 }
+
+// 中控模式：全屏、无 MainLayout；淡入淡出更接近"模式切换"而非页面跳转
+RouteType get _cockpitRouteType => RouteType.custom(
+  transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+      FadeTransition(opacity: animation, child: child),
+  duration: const Duration(milliseconds: 180),
+  reverseDuration: const Duration(milliseconds: 140),
+  enablePredictiveBackGesture: false,
+);
 
 // 250ms sits in M3's medium motion band (250-400ms); easeOutCubic matches
 // the app's existing curve. On Android the slide drives the predictive
@@ -161,6 +171,12 @@ class AppRouter {
         path: '/library',
         type: _slideRouteType,
         builder: (context, data) => MainLayout(child: const LibraryPage()),
+      ),
+      NamedRouteDef(
+        name: 'CockpitRoute',
+        path: '/cockpit',
+        type: _cockpitRouteType,
+        builder: (context, data) => const CockpitPage(),
       ),
     ],
   );

@@ -73,6 +73,7 @@ AppSettings _$AppSettingsFromJson(Map<String, dynamic> json) =>
         holidayMode: json['holidayMode'] as bool? ?? false,
         hapticFeedbackEnabled: json['hapticFeedbackEnabled'] as bool? ?? true,
         examMode: json['examMode'] as bool? ?? false,
+        cockpitMode: json['cockpitMode'] as bool? ?? true,
       )
       ..$lastUpdateTime = _$JsonConverterFromJson<String, DateTime>(
         json[r'$lastUpdateTime'],
@@ -91,6 +92,7 @@ Map<String, dynamic> _$AppSettingsToJson(AppSettings instance) =>
       'holidayMode': instance.holidayMode,
       'hapticFeedbackEnabled': instance.hapticFeedbackEnabled,
       'examMode': instance.examMode,
+      'cockpitMode': instance.cockpitMode,
     };
 
 const _$ThemeModeEnumMap = {

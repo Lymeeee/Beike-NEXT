@@ -4,6 +4,8 @@ import '/utils/page_mixins.dart';
 import '/utils/haptic.dart';
 import '/utils/navigation.dart';
 import '/utils/exam_helper.dart';
+import '/utils/reservation_view.dart';
+import '/pages/cockpit/gate.dart';
 import '/services/library/service.dart';
 import '/services/widget_updater.dart';
 import '/types/courses.dart';
@@ -53,6 +55,7 @@ class _HomePageState extends State<HomePage>
   List<LibzwReservation> _libraryReservations = const [];
   bool _libraryFetching = false;
   bool _homeRouteCurrent = true;
+  bool _cockpitCheckScheduled = false;
   // Feature card configurations
   late final List<_FeatureCardConfig> _courseFeatureCards = [
     _FeatureCardConfig(
@@ -131,6 +134,7 @@ class _HomePageState extends State<HomePage>
     _loadExamData();
     _loadLibraryReservations();
     _startTimers();
+    _scheduleCockpitCheck();
   }
 
   @override
@@ -159,6 +163,9 @@ class _HomePageState extends State<HomePage>
       _loadLibraryReservations();
     }
   }
+
+  @override
+  void didChangeMetrics() => _scheduleCockpitCheck();
 
   @override
   void dispose() {
@@ -297,7 +304,8 @@ class _HomePageState extends State<HomePage>
     _libraryFetching = true;
     try {
       // 缓存先上屏，联网结果随后覆盖
-      final cached = _cardReservations(_libraryService.readCachedReservations());
+      final cached =
+          filterUpcomingReservations(_libraryService.readCachedReservations());
       if (mounted) setState(() => _libraryReservations = cached);
 
       _libraryService.applySession(saved);
@@ -305,7 +313,9 @@ class _HomePageState extends State<HomePage>
         beginDateDash: _dashYmd(DateTime.now()),
         endDateDash: _dashYmd(DateTime.now().add(const Duration(days: 1))),
       );
-      if (mounted) setState(() => _libraryReservations = _cardReservations(list));
+      if (mounted) {
+        setState(() => _libraryReservations = filterUpcomingReservations(list));
+      }
     } catch (_) {
       // 登录过期/网络异常：保留缓存展示
     } finally {
@@ -313,31 +323,44 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  /// 卡片口径：今明两天、未结束且尚未到期的预约，按开始时间排序
-  List<LibzwReservation> _cardReservations(List<LibzwReservation> list) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final dayAfterTomorrow = today.add(const Duration(days: 2));
-    return list
-        .where((r) =>
-            !r.isEnded &&
-            r.begin != null &&
-            r.end != null &&
-            r.end!.isAfter(now) &&
-            r.begin!.isBefore(dayAfterTomorrow))
-        .toList()
-      ..sort((a, b) => a.begin!.compareTo(b.begin!));
-  }
-
   /// 从子页面返回首页（路由重新可见）时刷新图书馆预约
   void _refreshLibraryOnReturn() {
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
     if (isCurrent && !_homeRouteCurrent) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadLibraryReservations();
+        if (mounted) {
+          _loadLibraryReservations();
+          _scheduleCockpitCheck();
+        }
       });
     }
     _homeRouteCurrent = isCurrent;
+  }
+
+  /// 中控模式：首页横屏时自动进入全屏看板（详见 pages/cockpit）
+  void _scheduleCockpitCheck() {
+    if (_cockpitCheckScheduled) return;
+    _cockpitCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cockpitCheckScheduled = false;
+      if (mounted) _maybeEnterCockpit();
+    });
+  }
+
+  void _maybeEnterCockpit() {
+    if (!CockpitGate.isSupportedPlatform) return;
+    if (MediaQuery.orientationOf(context) != Orientation.landscape) {
+      // 观察到竖屏即解除"手动退出"抑制，等待下一次横屏
+      CockpitGate.instance.clearSuppression();
+      return;
+    }
+    // 分屏/自由窗过矮时不进入
+    if (MediaQuery.sizeOf(context).height < 320) return;
+    if (!CockpitGate.instance.isEnabledInSettings) return;
+    if (CockpitGate.instance.isSuppressed) return;
+    // 只有首页是最顶层路由（无子页面/弹窗）时才触发
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    pushPathGuarded(context, CockpitGate.routePath);
   }
 
   @override
@@ -395,7 +418,7 @@ class _HomePageState extends State<HomePage>
                 children: [
                   Icon(
                     Icons.menu_book,
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color: theme.colorScheme.primary,
                     size: 22,
                   ),
                   const SizedBox(width: 8),
@@ -403,7 +426,7 @@ class _HomePageState extends State<HomePage>
                     '教务管理',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimaryContainer,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ],
@@ -1065,7 +1088,7 @@ class _HomePageState extends State<HomePage>
                 children: [
                   Icon(
                     Icons.cottage,
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color: theme.colorScheme.primary,
                     size: 22,
                   ),
                   const SizedBox(width: 8),
@@ -1073,7 +1096,7 @@ class _HomePageState extends State<HomePage>
                     '生活服务',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimaryContainer,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ],
@@ -1253,16 +1276,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  /// 状态标签：进行中 / 今天 / 明天（列表项均非空 begin/end，见 _loadLibraryReservations）
-  String _reservationDayLabel(LibzwReservation r) {
-    final now = DateTime.now();
-    if (!r.begin!.isAfter(now) && r.end!.isAfter(now)) return '  进行中';
-    final today = DateTime(now.year, now.month, now.day);
-    return DateTime(r.begin!.year, r.begin!.month, r.begin!.day) == today
-        ? '  今天'
-        : '  明天';
-  }
-
   Widget _buildSingleReservationPreview(LibzwReservation r) {
     final theme = Theme.of(context);
     final dev = r.devices.isNotEmpty ? r.devices.first : null;
@@ -1310,7 +1323,7 @@ class _HomePageState extends State<HomePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_reservationDayLabel(r), style: textStyle1),
+            Text('  ${reservationDayLabel(r)}', style: textStyle1),
             const SizedBox(height: 4),
             Text(
               '  ${dev?.devName ?? '预约'}',

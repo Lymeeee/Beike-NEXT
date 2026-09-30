@@ -184,6 +184,7 @@ class AppSettings extends BaseDataClass {
   bool holidayMode;
   bool hapticFeedbackEnabled;
   bool examMode;
+  bool cockpitMode;
 
   AppSettings({
     required this.themeMode,
@@ -192,7 +193,35 @@ class AppSettings extends BaseDataClass {
     this.holidayMode = false,
     this.hapticFeedbackEnabled = true,
     this.examMode = false,
+    this.cockpitMode = true,
   });
+
+  /// 两个颜色字段可为空且需要"显式清空"语义，用哨兵区分"未传"与"传 null"
+  static const Object _unset = Object();
+
+  AppSettings copyWith({
+    ThemeMode? themeMode,
+    Object? accentColorValue = _unset,
+    Object? secondaryAccentColorValue = _unset,
+    bool? holidayMode,
+    bool? hapticFeedbackEnabled,
+    bool? examMode,
+    bool? cockpitMode,
+  }) {
+    return AppSettings(
+      themeMode: themeMode ?? this.themeMode,
+      accentColorValue: identical(accentColorValue, _unset)
+          ? this.accentColorValue
+          : accentColorValue as int?,
+      secondaryAccentColorValue: identical(secondaryAccentColorValue, _unset)
+          ? this.secondaryAccentColorValue
+          : secondaryAccentColorValue as int?,
+      holidayMode: holidayMode ?? this.holidayMode,
+      hapticFeedbackEnabled: hapticFeedbackEnabled ?? this.hapticFeedbackEnabled,
+      examMode: examMode ?? this.examMode,
+      cockpitMode: cockpitMode ?? this.cockpitMode,
+    );
+  }
 
   Color? get accentColor =>
       accentColorValue != null ? Color(accentColorValue!) : null;
@@ -209,6 +238,7 @@ class AppSettings extends BaseDataClass {
     'holidayMode': holidayMode,
     'hapticFeedbackEnabled': hapticFeedbackEnabled,
     'examMode': examMode,
+    'cockpitMode': cockpitMode,
   };
 
   static final AppSettings defaultSettings = AppSettings(

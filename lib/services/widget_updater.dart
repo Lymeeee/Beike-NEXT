@@ -48,6 +48,12 @@ class WidgetUpdater {
     _channel.invokeMethod('updateCurriculumData', json.encode(payload));
   }
 
+  /// 把当前配色推给桌面小组件，每个角色给 [浅色, 深色] 两个值，
+  /// 由小组件按系统的日夜模式挑用
+  void updateThemeColors(Map<String, List<int>> colors) {
+    _channel.invokeMethod('updateThemeColors', colors);
+  }
+
   void updateHoliday() {
     final payload = <String, dynamic>{
       'hasData': true,

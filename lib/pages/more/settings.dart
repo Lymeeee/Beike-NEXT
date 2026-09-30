@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/pages/net/traffic/dial.dart';
+import '/pages/cockpit/gate.dart';
 import '/services/provider.dart';
 import '/services/update/service.dart';
 import '/services/widget_updater.dart';
@@ -15,7 +16,8 @@ import '/types/courses.dart';
 import 'update_dialog.dart';
 
 class _AccentPreset {
-  /// [primary] 为空表示跟随系统动态取色；[secondary] 非空表示双拼预设
+  /// [primary] 为空表示跟随系统动态取色，否则是背景底色的种子；
+  /// [secondary] 非空表示双拼，作为按钮、开关这类点缀色的种子
   const _AccentPreset(this.primary, [this.secondary]);
 
   final Color? primary;
@@ -39,7 +41,7 @@ const _accentPresets = <_AccentPreset>[
   _AccentPreset(Color(0xFFA55D4A), Color(0xFFDFD5A4)), // 新年 朱红 + 亮金
   _AccentPreset(Color(0xFF704E7E), Color(0xFFAE7447)), // 万圣节 巫紫 + 南瓜琥珀
   _AccentPreset(Color(0xFF8C3644), Color(0xFF4B6C5B)), // 圣诞节 圣诞红 + 松针绿
-  _AccentPreset(Color(0xFFB8C9D5), Color(0xFFEBEDEF)), // 冬至 冰川蓝 + 月白
+  _AccentPreset(Color(0xFFB8C9D5), Color(0xFF4A6B8A)), // 冬至 冰川蓝 + 靛蓝
   _AccentPreset(Color(0xFF404B68), Color(0xFFBFA269)), // 中秋 夜空蓝 + 桂月黄
   _AccentPreset(Color(0xFFDEBAC5), Color(0xFFB1CB9F)), // 樱花季 樱粉 + 嫩柳
 ];
@@ -123,6 +125,10 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
           const SizedBox(height: 16),
           _buildHolidayToggle(),
           const SizedBox(height: 16),
+          if (CockpitGate.isSupportedPlatform) ...[
+            _buildCockpitToggle(),
+            const SizedBox(height: 16),
+          ],
           _buildHapticToggle(),
           if (_isSummerTerm()) ...[
             const SizedBox(height: 16),
@@ -280,16 +286,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   void _setExamModeEnabled(bool value) {
     final existing = _serviceProvider.storeService
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    final updated = AppSettings(
-      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
-      accentColorValue:
-          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
-      secondaryAccentColorValue: existing?.secondaryAccentColorValue ??
-          ThemeManager.currentSecondaryAccentColor?.toARGB32(),
-      holidayMode: existing?.holidayMode ?? false,
-      hapticFeedbackEnabled: existing?.hapticFeedbackEnabled ?? true,
-      examMode: value,
-    );
+    final updated =
+        (existing ?? AppSettings.defaultSettings).copyWith(examMode: value);
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',
       updated,
@@ -368,14 +366,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   void _setHolidayMode(bool value) {
     final existing = _serviceProvider.storeService
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    final updated = AppSettings(
-      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
-      accentColorValue:
-          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
-      secondaryAccentColorValue: existing?.secondaryAccentColorValue ??
-          ThemeManager.currentSecondaryAccentColor?.toARGB32(),
-      holidayMode: value,
-    );
+    final updated =
+        (existing ?? AppSettings.defaultSettings).copyWith(holidayMode: value);
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',
       updated,
@@ -444,15 +436,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
   void _setHapticEnabled(bool value) {
     final existing = _serviceProvider.storeService
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
-    final updated = AppSettings(
-      themeMode: existing?.themeMode ?? ThemeManager.currentThemeMode,
-      accentColorValue:
-          existing?.accentColorValue ?? ThemeManager.currentAccentColor?.toARGB32(),
-      secondaryAccentColorValue: existing?.secondaryAccentColorValue ??
-          ThemeManager.currentSecondaryAccentColor?.toARGB32(),
-      holidayMode: existing?.holidayMode ?? false,
-      hapticFeedbackEnabled: value,
-    );
+    final updated = (existing ?? AppSettings.defaultSettings)
+        .copyWith(hapticFeedbackEnabled: value);
     _serviceProvider.storeService.putPref<AppSettings>(
       'app_settings',
       updated,
@@ -497,6 +482,68 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
               onChanged: (value) {
                 Haptics.selection();
                 _setHapticEnabled(value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _getCockpitMode() {
+    final prefs = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    return prefs?.cockpitMode ?? true;
+  }
+
+  void _setCockpitMode(bool value) {
+    final existing = _serviceProvider.storeService
+        .getPref<AppSettings>('app_settings', AppSettings.fromJson);
+    final updated =
+        (existing ?? AppSettings.defaultSettings).copyWith(cockpitMode: value);
+    _serviceProvider.storeService.putPref<AppSettings>(
+      'app_settings',
+      updated,
+    );
+    setState(() {});
+  }
+
+  Widget _buildCockpitToggle() {
+    final enabled = _getCockpitMode();
+
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '看板模式',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '在首页横屏将进入此模式，展示时间与日程信息',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Switch(
+              value: enabled,
+              onChanged: (value) {
+                Haptics.selection();
+                _setCockpitMode(value);
               },
             ),
           ],
