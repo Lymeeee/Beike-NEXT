@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/ic_launcher_foreground_img"
-    android:inset="20%" />
+<!-- 前景需铺满 108dp 画布：内缩会让三星等大遮罩启动器露出背景色，形成白边 -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_foreground_img"
+    android:gravity="fill" />

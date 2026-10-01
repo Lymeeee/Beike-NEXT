@@ -154,33 +154,6 @@ class UstbByytService extends BaseCoursesService {
   }
 
   @override
-  Future<bool> doSendHeartbeat() async {
-    if (status == ServiceStatus.offline) {
-      return false;
-    }
-
-    try {
-      final response = await _dio.post('/component/online');
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-
-        final success = data['code'] == 0;
-
-        if (!success) {
-          setError('Heartbeat failed: ${data['msg'] ?? 'No msg'}');
-        }
-
-        return success;
-      } else {
-        return false;
-      }
-    } catch (e) {
-      return false;
-    }
-  }
-
-  @override
   Future<UserInfo> getUserInfo() async {
     Response response;
     try {
@@ -538,7 +511,8 @@ class UstbByytService extends BaseCoursesService {
     try {
       response = await _dio.post(
         '/Xiaoli/queryMonthList',
-        data: {'xn': termInfo.year, 'xq': termInfo.season.toString()},
+        // 该接口的 xn/xq 参数会被后端忽略（恒返回当前学期），跨学期必须用 pxn/pxq
+        data: {'pxn': termInfo.year, 'pxq': termInfo.season.toString()},
         options: Options(headers: {'Rolecode': '01'}),
       );
     } catch (e) {

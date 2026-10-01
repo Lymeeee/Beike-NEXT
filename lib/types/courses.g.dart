@@ -218,6 +218,7 @@ CalendarDay _$CalendarDayFromJson(Map<String, dynamic> json) =>
         day: (json['day'] as num).toInt(),
         weekday: (json['weekday'] as num).toInt(),
         weekIndex: (json['weekIndex'] as num).toInt(),
+        isRest: json['isRest'] as bool?,
       )
       ..$lastUpdateTime = _$JsonConverterFromJson<String, DateTime>(
         json[r'$lastUpdateTime'],
@@ -235,6 +236,7 @@ Map<String, dynamic> _$CalendarDayToJson(CalendarDay instance) =>
       'day': instance.day,
       'weekday': instance.weekday,
       'weekIndex': instance.weekIndex,
+      'isRest': instance.isRest,
     };
 
 TermInfo _$TermInfoFromJson(Map<String, dynamic> json) =>
@@ -292,8 +294,7 @@ Map<String, dynamic> _$CurriculumIntegratedDataToJson(
   'allClasses': instance.allClasses,
   'allPeriods': instance.allPeriods,
   'calendarDays': instance.calendarDays,
-  'summerTermStartDate':
-          instance.summerTermStartDate?.toIso8601String(),
+  'summerTermStartDate': instance.summerTermStartDate?.toIso8601String(),
 };
 
 CourseDetail _$CourseDetailFromJson(Map<String, dynamic> json) =>

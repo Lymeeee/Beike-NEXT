@@ -219,12 +219,25 @@ extension CalendarDayUstbByytExtension on CalendarDay {
         ? -1
         : rawWeekIndex;
 
+    // 校历休息标记：按星期命名 [星期]1 字段，'1'=休息（周末/法定假日），'0'=上课日
+    final restFlagRaw = switch (weekday) {
+      1 => data['MON1'],
+      2 => data['TUES1'] ?? data['TUE1'],
+      3 => data['WED1'],
+      4 => data['THUR1'] ?? data['THU1'],
+      5 => data['FRI1'],
+      6 => data['SAT1'],
+      _ => data['SUN1'],
+    };
+    final isRest = restFlagRaw == null ? null : restFlagRaw.toString() == '1';
+
     return CalendarDay(
       year: year,
       month: month,
       day: day,
       weekday: weekday,
       weekIndex: weekIndex,
+      isRest: isRest,
     );
   }
 }

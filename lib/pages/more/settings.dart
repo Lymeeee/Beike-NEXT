@@ -130,10 +130,6 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
             const SizedBox(height: 16),
           ],
           _buildHapticToggle(),
-          if (_isSummerTerm()) ...[
-            const SizedBox(height: 16),
-            _buildSummerTermStartDateCard(),
-          ],
           const SizedBox(height: 24),
           if (Platform.isAndroid && _isIgnoringBatteryOptimization != true) ...[
             _buildBatteryOptimizationTile(),
@@ -894,111 +890,5 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
     }
   }
 
-  bool _isSummerTerm() {
-    final curriculumData = _serviceProvider.storeService
-        .getConfig<CurriculumIntegratedData>(
-            'curriculum_data', CurriculumIntegratedData.fromJson);
-    return curriculumData != null && curriculumData.currentTerm.season >= 3;
-  }
-
-  String? _getSummerTermStartDate() {
-    final data = _serviceProvider.storeService
-        .getConfig<CurriculumIntegratedData>(
-            'curriculum_data', CurriculumIntegratedData.fromJson);
-    final dt = data?.summerTermStartDate;
-    if (dt == null) return null;
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-  }
-
-  void _setSummerTermStartDate(DateTime date) {
-    final data = _serviceProvider.storeService
-        .getConfig<CurriculumIntegratedData>(
-            'curriculum_data', CurriculumIntegratedData.fromJson);
-    if (data != null) {
-      data.summerTermStartDate = date;
-      _serviceProvider.storeService.putConfig<CurriculumIntegratedData>(
-          'curriculum_data', data);
-      WidgetUpdater().updateFromCurriculum(data);
-    }
-    _serviceProvider.notifySettingsChanged();
-    setState(() {});
-  }
-
-  String _formatSummerTermStartDate(String? date) {
-    if (date == null) return '未设定';
-    final dt = DateTime.tryParse(date);
-    if (dt == null) return '未设定';
-    return '${dt.year}年${dt.month}月${dt.day}日';
-  }
-
-  Future<void> _showSummerTermDatePicker() async {
-    final initialDate = DateTime.now();
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2024, 1, 1),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: '选择小学期起始日期',
-      cancelText: '取消',
-      confirmText: '确定',
-    );
-
-    if (picked != null) {
-      _setSummerTermStartDate(picked);
-    }
-  }
-
-  Widget _buildSummerTermStartDateCard() {
-    final date = _getSummerTermStartDate();
-
-    return Card.filled(
-      shape: _noBorderShape,
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        onTap: () {
-          Haptics.selection();
-          _showSummerTermDatePicker();
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_month,
-                  color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '小学期起始日',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatSummerTermStartDate(date),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(
-                              color: date != null
-                                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                                  : Theme.of(context).colorScheme.error),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
+

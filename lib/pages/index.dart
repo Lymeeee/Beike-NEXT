@@ -384,7 +384,7 @@ class _HomePageState extends State<HomePage>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                '北京科技大学校园助手',
+                '${DateTime.now().year}年${DateTime.now().month}月${DateTime.now().day}日',
                 style: TextStyle(
                   fontSize: 16,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,

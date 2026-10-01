@@ -114,11 +114,9 @@ class ServiceProvider extends ChangeNotifier {
       throw const CourseServiceOffline();
     }
 
-    final calendarFuture = termInfo.season >= 3
-        ? Future.value(<CalendarDay>[])
-        : coursesService
-            .getCalendarDays(termInfo)
-            .catchError((e) => <CalendarDay>[]);
+    final calendarFuture = coursesService
+        .getCalendarDays(termInfo)
+        .catchError((e) => <CalendarDay>[]);
 
     final futures = await Future.wait([
       coursesService.getCurriculum(termInfo),
@@ -130,11 +128,36 @@ class ServiceProvider extends ChangeNotifier {
     final periods = futures[1] as List<ClassPeriod>;
     final calendarDays = futures[2] as List<CalendarDay>;
 
+    final previousData = storeService.getConfig<CurriculumIntegratedData>(
+      "curriculum_data",
+      CurriculumIntegratedData.fromJson,
+    );
+    final previousSameTerm = (previousData != null &&
+            previousData.currentTerm.year == termInfo.year &&
+            previousData.currentTerm.season == termInfo.season)
+        ? previousData
+        : null;
+
+    // 校历拉取失败时保留同一学期的旧校历，避免刷新把已缓存校历清掉
+    var effectiveCalendarDays = calendarDays;
+    if (calendarDays.isEmpty &&
+        previousSameTerm != null &&
+        previousSameTerm.calendarDays != null) {
+      effectiveCalendarDays = previousSameTerm.calendarDays!;
+    }
+
     final integratedData = CurriculumIntegratedData(
       currentTerm: termInfo,
       allClasses: classes,
       allPeriods: periods,
-      calendarDays: calendarDays.isEmpty ? null : calendarDays,
+      calendarDays:
+          effectiveCalendarDays.isEmpty ? null : effectiveCalendarDays,
+      // 小学期起始日优先从校历推导（供小组件用），拉不到兜底旧值
+      summerTermStartDate: termInfo.season >= 3
+          ? (CurriculumIntegratedData.summerStartFromCalendar(
+                  effectiveCalendarDays) ??
+              previousSameTerm?.summerTermStartDate)
+          : null,
     );
 
     // Cache the data

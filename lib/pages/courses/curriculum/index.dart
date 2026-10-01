@@ -33,6 +33,8 @@ class _CurriculumPageState extends State<CurriculumPage>
 
   CurriculumIntegratedData? _curriculumData;
   String? _errorMessage;
+  // 最近请求加载的学期，失败重试时复用
+  TermInfo? _lastRequestedTerm;
   int _currentWeek = 1;
   int _previousWeek = 0;
   bool _isLoading = false;
@@ -162,6 +164,7 @@ class _CurriculumPageState extends State<CurriculumPage>
   }
 
   Future<void> _loadCurriculumForTerm(TermInfo termInfo) async {
+    _lastRequestedTerm = termInfo;
     final service = _serviceProvider.coursesService;
 
     if (!service.isOnline) {
@@ -176,9 +179,8 @@ class _CurriculumPageState extends State<CurriculumPage>
     }
 
     try {
-      final calendarFuture = termInfo.season >= 3
-          ? Future.value(<CalendarDay>[])
-          : service.getCalendarDays(termInfo).catchError((e) => <CalendarDay>[]);
+      final calendarFuture =
+          service.getCalendarDays(termInfo).catchError((e) => <CalendarDay>[]);
 
       final futures = await Future.wait([
         service.getCurriculum(termInfo),
@@ -190,11 +192,37 @@ class _CurriculumPageState extends State<CurriculumPage>
       final periods = futures[1] as List<ClassPeriod>;
       final calendarDays = futures[2] as List<CalendarDay>;
 
+      final previousData = _serviceProvider.storeService
+          .getConfig<CurriculumIntegratedData>(
+        "curriculum_data",
+        CurriculumIntegratedData.fromJson,
+      );
+      final previousSameTerm = (previousData != null &&
+              previousData.currentTerm.year == termInfo.year &&
+              previousData.currentTerm.season == termInfo.season)
+          ? previousData
+          : null;
+
+      // 校历拉取失败时保留同一学期的旧校历，避免刷新把已缓存校历清掉
+      var effectiveCalendarDays = calendarDays;
+      if (calendarDays.isEmpty &&
+          previousSameTerm != null &&
+          previousSameTerm.calendarDays != null) {
+        effectiveCalendarDays = previousSameTerm.calendarDays!;
+      }
+
       final integratedData = CurriculumIntegratedData(
         currentTerm: termInfo,
         allClasses: classes,
         allPeriods: periods,
-        calendarDays: calendarDays.isEmpty ? null : calendarDays,
+        calendarDays:
+            effectiveCalendarDays.isEmpty ? null : effectiveCalendarDays,
+        // 小学期起始日优先从校历推导（供小组件用），拉不到兜底旧值
+        summerTermStartDate: termInfo.season >= 3
+            ? (CurriculumIntegratedData.summerStartFromCalendar(
+                    effectiveCalendarDays) ??
+                previousSameTerm?.summerTermStartDate)
+            : null,
       );
 
       _serviceProvider.storeService.putConfig<CurriculumIntegratedData>(
@@ -560,8 +588,19 @@ class _CurriculumPageState extends State<CurriculumPage>
   }
 
   Future<void> _refreshCurriculumData() async {
+    final cachedData = _serviceProvider.storeService
+        .getConfig<CurriculumIntegratedData>(
+      "curriculum_data",
+      CurriculumIntegratedData.fromJson,
+    );
+    final termToReload = _lastRequestedTerm ?? cachedData?.currentTerm;
     _serviceProvider.storeService.delConfig("curriculum_data");
-    await _loadCurriculumFromCacheOrService();
+
+    if (termToReload != null && _serviceProvider.coursesService.isOnline) {
+      await _loadCurriculumForTerm(termToReload);
+    } else {
+      await _loadCurriculumFromCacheOrService();
+    }
   }
 
   Future<void> _clearCacheAndSelectTerm() async {

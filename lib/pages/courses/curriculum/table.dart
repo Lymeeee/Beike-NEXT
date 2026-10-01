@@ -136,11 +136,15 @@ class CurriculumTable extends StatelessWidget {
     String? displayYear;
 
     final days = curriculumData.calendarDays;
+    final restWeekdays = <int>{};
     if (days != null && days.isNotEmpty) {
       for (final calendarDay in days) {
         if (calendarDay.weekIndex == currentWeek) {
           displayMonth = '${calendarDay.month}月';
           displayYear = '${calendarDay.year}年';
+          if (calendarDay.isRest == true) {
+            restWeekdays.add(calendarDay.weekday);
+          }
         }
       }
     } else if (curriculumData.currentTerm.season >= 3 &&
@@ -203,6 +207,7 @@ class CurriculumTable extends StatelessWidget {
                         weekClasses,
                         day,
                         majorPeriods[periodIndex],
+                        isRestDay: day <= 5 && restWeekdays.contains(day),
                       ),
                   ],
                 ),
@@ -344,8 +349,9 @@ class CurriculumTable extends StatelessWidget {
     CurriculumSettings settings,
     List<ClassItem> weekClasses,
     int day,
-    _MajorPeriodInfo majorPeriod,
-  ) {
+    _MajorPeriodInfo majorPeriod, {
+    bool isRestDay = false,
+  }) {
     final classesInSlot = weekClasses.where((classItem) {
       return classItem.day == day && classItem.period == majorPeriod.id;
     }).toList();
@@ -356,7 +362,7 @@ class CurriculumTable extends StatelessWidget {
             ? _getMultiClassColors(context)
             : _getClassColors(context, classesInSlot.first);
 
-    return Container(
+    final cell = Container(
       height: cellHeight,
       margin: const EdgeInsets.fromLTRB(2, 1, 2, 1),
       decoration: BoxDecoration(
@@ -381,6 +387,24 @@ class CurriculumTable extends StatelessWidget {
                 : _buildClassContent(context, classesInSlot, settings, classColors!.foreground),
           ),
         ],
+      ),
+    );
+
+    if (!isRestDay || classesInSlot.isEmpty) {
+      return cell;
+    }
+
+    // 校历休息日：课程置灰，提示当天实际无课
+    return Opacity(
+      opacity: 0.45,
+      child: ColorFiltered(
+        colorFilter: const ColorFilter.matrix(<double>[
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0, 0, 0, 1, 0,
+        ]),
+        child: cell,
       ),
     );
   }

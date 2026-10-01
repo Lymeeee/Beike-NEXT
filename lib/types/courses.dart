@@ -289,12 +289,16 @@ class CalendarDay extends BaseDataClass {
   final int weekday;
   final int weekIndex;
 
+  /// 校历标记：true=休息日（周末/法定假日），false=上课日，null=未知（旧缓存数据）
+  final bool? isRest;
+
   CalendarDay({
     required this.year,
     required this.month,
     required this.day,
     required this.weekday,
     required this.weekIndex,
+    this.isRest,
   });
 
   @override
@@ -305,6 +309,7 @@ class CalendarDay extends BaseDataClass {
       'day': day,
       'weekday': weekday,
       'weekIndex': weekIndex,
+      'isRest': isRest,
     };
   }
 
@@ -430,6 +435,18 @@ class CurriculumIntegratedData extends BaseDataClass {
     return null;
   }
 
+  /// 小学期起始日 = 校历中的最早一天，拉不到校历时小组件回退用
+  static DateTime? summerStartFromCalendar(List<CalendarDay> days) {
+    DateTime? earliest;
+    for (final day in days) {
+      final date = DateTime(day.year, day.month, day.day);
+      if (earliest == null || date.isBefore(earliest)) {
+        earliest = date;
+      }
+    }
+    return earliest;
+  }
+
   int _computeSummerWeekIndex() {
     final start = summerTermStartDate;
     if (start == null) return 1;
@@ -475,11 +492,25 @@ class CurriculumIntegratedData extends BaseDataClass {
     if (currentWeek == null) return [];
 
     final now = DateTime.now();
+    if (now.weekday <= 5 && _isCalendarRestDay(now)) return [];
+
     final lookupDay = now.weekday;
 
     return getClassesOfWeek(
       currentWeek,
     ).where((classItem) => classItem.day == lookupDay).toList();
+  }
+
+  bool _isCalendarRestDay(DateTime date) {
+    if (calendarDays == null) return false;
+    for (final calendarDay in calendarDays!) {
+      if (calendarDay.year == date.year &&
+          calendarDay.month == date.month &&
+          calendarDay.day == date.day) {
+        return calendarDay.isRest == true;
+      }
+    }
+    return false;
   }
 
   ClassItem? getClassOngoing() {
