@@ -35,6 +35,7 @@ struct WidgetCalendarDay: Codable {
     let day: Int
     let weekday: Int
     let weekIndex: Int
+    let isRest: Bool?
 }
 
 struct WidgetCurriculumData: Codable {
@@ -120,6 +121,18 @@ struct Provider: TimelineProvider {
                 let refresh = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
                 completion(Timeline(entries: [entry], policy: .after(refresh)))
             }
+            return
+        }
+
+        // 与课表页灰显同一判断：校历标注今天为休息日（调休放假）就不显示课程
+        if isTodayCalendarRest(curriculum) {
+            let entry = ClassEntry(date: Date(), hasClass: false,
+                className: "啊？今天好像调休放假吧～",
+                timeRange: "", location: "", teacher: "")
+            let midnight = Calendar.current.startOfDay(
+                for: Calendar.current.date(byAdding: .day, value: 1, to: Date())!
+            )
+            completion(Timeline(entries: [entry], policy: .after(midnight)))
             return
         }
 
@@ -440,6 +453,20 @@ struct Provider: TimelineProvider {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         return f.string(from: date)
+    }
+
+    // MARK: - Rest day detection
+
+    private func isTodayCalendarRest(_ data: WidgetCurriculumData) -> Bool {
+        let calendar = Calendar.current
+        let now = Date()
+        let components = calendar.dateComponents([.year, .month, .day, .weekday], from: now)
+        let todayWeekday = ((components.weekday ?? 1) + 5) % 7 + 1  // Mon=1..Sun=7
+        guard todayWeekday <= 5 else { return false }
+        guard let today = data.calendarDays?.first(where: {
+            $0.year == components.year && $0.month == components.month && $0.day == components.day
+        }) else { return false }
+        return today.isRest == true
     }
 
     // MARK: - Data reading

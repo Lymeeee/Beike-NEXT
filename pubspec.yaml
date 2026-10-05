@@ -46,6 +46,7 @@ dependencies:
   cookie_jar: ^4.0.9
   dynamic_color: ^1.7.0
   pointycastle: ^3.9.1
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -100,6 +101,7 @@ flutter:
   # see https://flutter.dev/to/font-from-package
   assets:
     - assets/icons/
+    - assets/audio/
 
   fonts:
     - family: MiSans

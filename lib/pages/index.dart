@@ -6,9 +6,11 @@ import '/utils/navigation.dart';
 import '/utils/exam_helper.dart';
 import '/utils/reservation_view.dart';
 import '/pages/cockpit/gate.dart';
+import '/services/electricity/service.dart';
 import '/services/library/service.dart';
 import '/services/widget_updater.dart';
 import '/types/courses.dart';
+import '/types/electricity.dart';
 import '/types/library.dart';
 import '/types/preferences.dart';
 
@@ -56,6 +58,13 @@ class _HomePageState extends State<HomePage>
   bool _libraryFetching = false;
   bool _homeRouteCurrent = true;
   bool _cockpitCheckScheduled = false;
+
+  /// 首页日期下展示的宿舍剩余电量（缓存优先）
+  final ElectricityService _electricityService = ElectricityService();
+  static const Duration _electricityRefreshInterval = Duration(minutes: 5);
+  RemainingElectricity? _electricity;
+  bool _electricityFetching = false;
+  DateTime? _lastElectricityFetch;
   // Feature card configurations
   late final List<_FeatureCardConfig> _courseFeatureCards = [
     _FeatureCardConfig(
@@ -104,11 +113,11 @@ class _HomePageState extends State<HomePage>
       route: '/net/traffic',
     ),
     _FeatureCardConfig(
-      title: '电费查询',
-      description: '查询宿舍电表余额',
-      icon: Icons.bolt,
+      title: '专注时刻',
+      description: '番茄钟与白噪音',
+      icon: Icons.timer_outlined,
       color: (c) => Theme.of(c).colorScheme.primary,
-      route: '/net/electricity',
+      route: '/pomodoro',
     ),
     _FeatureCardConfig(
       title: 'WebVPN',
@@ -133,6 +142,7 @@ class _HomePageState extends State<HomePage>
     _loadCurriculumData();
     _loadExamData();
     _loadLibraryReservations();
+    _refreshElectricity();
     _startTimers();
     _scheduleCockpitCheck();
   }
@@ -161,6 +171,7 @@ class _HomePageState extends State<HomePage>
     // 从后台回到前台时刷新图书馆预约（隔夜后旧数据日期会错位）
     if (state == AppLifecycleState.resumed) {
       _loadLibraryReservations();
+      _refreshElectricity();
     }
   }
 
@@ -172,6 +183,7 @@ class _HomePageState extends State<HomePage>
     WidgetsBinding.instance.removeObserver(this);
     _shortRefreshTimer?.cancel();
     _libraryService.dispose();
+    _electricityService.dispose();
     super.dispose();
   }
 
@@ -224,6 +236,12 @@ class _HomePageState extends State<HomePage>
         .getPref<AppSettings>('app_settings', AppSettings.fromJson);
     return prefs?.holidayMode ?? false;
   }
+
+  /// 课表卡片副标题：校历休息日（调休放假）说明当天没有课
+  String get _curriculumCardSubtitle =>
+      _curriculumData?.isTodayRestDay == true
+          ? '啊？今天好像调休放假吧～'
+          : '查看每周课程安排';
 
   void _loadExamData() {
     final cached = serviceProvider.storeService.getPref<CachedExamList>(
@@ -323,6 +341,43 @@ class _HomePageState extends State<HomePage>
     }
   }
 
+  /// 首页日期下展示剩余电量：缓存先上屏，再联网刷新。
+  /// 未设置电表号则隐藏；查询失败静默保留缓存展示。
+  Future<void> _refreshElectricity() async {
+    if (_electricityFetching) return;
+    _electricityFetching = true;
+    try {
+      final number = await _electricityService.getSavedAmmeterNumber();
+      final history = number == null
+          ? const <RemainingElectricity>[]
+          : await _electricityService.getHistory(number);
+      if (mounted) {
+        setState(() {
+          _electricity = history.isNotEmpty ? history.last : null;
+        });
+      }
+      if (number == null) return;
+
+      // 冷启动 init 与首个 resumed 回调、频繁切前后台会连续触发，短期内不重复联网
+      final lastFetch = _lastElectricityFetch;
+      if (lastFetch != null &&
+          DateTime.now().difference(lastFetch) < _electricityRefreshInterval) {
+        return;
+      }
+      final updated = await _electricityService.fetchAndRecord(number);
+      _lastElectricityFetch = DateTime.now();
+      if (mounted) {
+        setState(() {
+          _electricity = updated.last;
+        });
+      }
+    } catch (_) {
+      // 网络/接口异常：保留缓存展示
+    } finally {
+      _electricityFetching = false;
+    }
+  }
+
   /// 从子页面返回首页（路由重新可见）时刷新图书馆预约
   void _refreshLibraryOnReturn() {
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
@@ -330,6 +385,7 @@ class _HomePageState extends State<HomePage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _loadLibraryReservations();
+          _refreshElectricity();
           _scheduleCockpitCheck();
         }
       });
@@ -391,6 +447,19 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
             ),
+            if (_electricity != null) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  '剩余电量 ${_electricity!.remain} kWh',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 48),
             _buildFeatureGrid(),
             const SizedBox(height: 32),
@@ -681,7 +750,7 @@ class _HomePageState extends State<HomePage>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '查看每周课程安排',
+                  _curriculumCardSubtitle,
                   style: TextStyle(
                     fontSize: 16,
                     color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
@@ -726,7 +795,7 @@ class _HomePageState extends State<HomePage>
           ] else ...[
             const SizedBox(height: 16),
             Text(
-              '查看每周课程安排',
+              _curriculumCardSubtitle,
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.9),

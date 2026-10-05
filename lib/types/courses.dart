@@ -487,13 +487,20 @@ class CurriculumIntegratedData extends BaseDataClass {
         .toList();
   }
 
+  /// 今天是否为校历休息日（调休放假/法定假日），与课表页灰显同一判断
+  bool get isTodayRestDay {
+    final now = DateTime.now();
+    if (now.weekday > 5) return false;
+    return _isCalendarRestDay(now);
+  }
+
   List<ClassItem> getClassesToday() {
     final currentWeek = getWeekIndexToday();
     if (currentWeek == null) return [];
 
-    final now = DateTime.now();
-    if (now.weekday <= 5 && _isCalendarRestDay(now)) return [];
+    if (isTodayRestDay) return [];
 
+    final now = DateTime.now();
     final lookupDay = now.weekday;
 
     return getClassesOfWeek(

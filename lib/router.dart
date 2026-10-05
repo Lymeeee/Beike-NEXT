@@ -13,13 +13,13 @@ import 'pages/courses/grade/index.dart';
 import 'pages/courses/account/index.dart';
 import 'pages/net/dashboard/index.dart';
 import 'pages/net/traffic/index.dart';
-import 'pages/net/electricity/index.dart';
 import 'pages/net/webvpn/index.dart';
 import 'pages/more/settings.dart';
 import 'pages/more/about.dart';
 import 'pages/empty_classroom/index.dart';
 import 'pages/library/index.dart';
 import 'pages/cockpit/index.dart';
+import 'pages/pomodoro/index.dart';
 
 class _BottomTab {
   final IconData icon;
@@ -136,12 +136,6 @@ class AppRouter {
         builder: (context, data) => MainLayout(child: const NetTrafficPage()),
       ),
       NamedRouteDef(
-        name: 'NetElectricityRoute',
-        path: '/net/electricity',
-        type: _slideRouteType,
-        builder: (context, data) => MainLayout(child: const ElectricityPage()),
-      ),
-      NamedRouteDef(
         name: 'WebVpnRoute',
         path: '/net/webvpn',
         type: _slideRouteType,
@@ -177,6 +171,12 @@ class AppRouter {
         path: '/cockpit',
         type: _cockpitRouteType,
         builder: (context, data) => const CockpitPage(),
+      ),
+      NamedRouteDef(
+        name: 'PomodoroRoute',
+        path: '/pomodoro',
+        type: _slideRouteType,
+        builder: (context, data) => MainLayout(child: const PomodoroPage()),
       ),
     ],
   );

@@ -166,6 +166,23 @@ class UpcomingClassWidget : AppWidgetProvider() {
             WidgetRefreshWorker.schedule(context)
         }
 
+        private fun isCalendarRestDay(
+            calendarDays: JSONArray?,
+            year: Int, month: Int, day: Int
+        ): Boolean {
+            if (calendarDays == null) return false
+            for (i in 0 until calendarDays.length()) {
+                val cd = calendarDays.getJSONObject(i)
+                if (cd.optInt("year") == year &&
+                    cd.optInt("month") == month &&
+                    cd.optInt("day") == day
+                ) {
+                    return cd.optBoolean("isRest", false)
+                }
+            }
+            return false
+        }
+
         private fun getWeekIndexForDate(
             calendarDays: JSONArray?,
             termSeason: Int,
@@ -302,6 +319,18 @@ class UpcomingClassWidget : AppWidgetProvider() {
                 val todayMonth = calendar.get(Calendar.MONTH) + 1
                 val todayDay = calendar.get(Calendar.DAY_OF_MONTH)
                 val todayWeekday = convertToMondayBased(calendar.get(Calendar.DAY_OF_WEEK))
+                val calendarDays = data.optJSONArray("calendarDays")
+
+                // 与课表页灰显同一判断：校历标注今天为休息日（调休放假）就不显示课程
+                if (todayWeekday <= 5 &&
+                    isCalendarRestDay(calendarDays, todayYear, todayMonth, todayDay)
+                ) {
+                    hideAllFields(views)
+                    views.setTextViewText(R.id.class_name_text, "啊？今天好像调休放假吧～")
+                    attachClickIntent(context, views)
+                    return
+                }
+
                 val termSeason = data.optInt("termSeason", 1)
                 val isSummerTerm = termSeason >= 3
                 val summerStartYear = data.optInt("summerTermStartYear", -1)
@@ -322,7 +351,6 @@ class UpcomingClassWidget : AppWidgetProvider() {
                 val allPeriods = data.optJSONArray("allPeriods") ?: run {
                     hideAllFields(views); views.setTextViewText(R.id.class_name_text, "课表数据异常"); return
                 }
-                val calendarDays = data.optJSONArray("calendarDays")
                 val maxWeek = getMaxWeekIndex(allClasses, calendarDays)
 
                 // Find or extrapolate today's week index

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '/pages/net/traffic/dial.dart';
 import '/pages/cockpit/gate.dart';
+import '/services/electricity/service.dart';
 import '/services/provider.dart';
 import '/services/update/service.dart';
 import '/services/widget_updater.dart';
@@ -60,13 +61,17 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
 
   final ServiceProvider _serviceProvider = ServiceProvider.instance;
   final UpdateService _updateService = UpdateService();
+  final ElectricityService _electricityService = ElectricityService();
+  final TextEditingController _ammeterController = TextEditingController();
   bool _isClearingData = false;
   bool _isCheckingUpdate = false;
+  bool _isSavingAmmeter = false;
   bool? _isIgnoringBatteryOptimization;
 
   @override
   void initState() {
     super.initState();
+    _loadSavedAmmeter();
     if (Platform.isAndroid) {
       WidgetsBinding.instance.addObserver(this);
       _refreshBatteryOptimizationState();
@@ -78,6 +83,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
     if (Platform.isAndroid) {
       WidgetsBinding.instance.removeObserver(this);
     }
+    _ammeterController.dispose();
+    _electricityService.dispose();
     super.dispose();
   }
 
@@ -121,6 +128,8 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
             child: _buildAccentColorPicker(),
           ),
           const SizedBox(height: 24),
+          _buildElectricityCard(),
+          const SizedBox(height: 16),
           _buildExamModeToggle(),
           const SizedBox(height: 16),
           _buildHolidayToggle(),
@@ -269,6 +278,104 @@ class _SettingsPageState extends State<SettingsPage> with WidgetsBindingObserver
                         ],
                       ),
               ),
+      ),
+    );
+  }
+
+  Future<void> _loadSavedAmmeter() async {
+    final saved = await _electricityService.getSavedAmmeterNumber();
+    if (saved != null && mounted) {
+      _ammeterController.text = saved.toString();
+    }
+  }
+
+  Future<void> _saveAmmeter() async {
+    final number = int.tryParse(_ammeterController.text.trim());
+    if (number == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入正确的电表号')),
+      );
+      return;
+    }
+
+    setState(() => _isSavingAmmeter = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _electricityService.saveAmmeterNumber(number);
+      var message = '电表号已保存';
+      try {
+        // 保存后立即查询一次，切回首页马上能看到数据；查询失败静默，首页下次打开会自动重试
+        final history = await _electricityService.fetchAndRecord(number);
+        message = '电表号已保存，剩余电量 ${history.last.remain} kWh';
+      } catch (_) {}
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('保存失败，请重试')));
+    } finally {
+      if (mounted) setState(() => _isSavingAmmeter = false);
+    }
+  }
+
+  Widget _buildElectricityCard() {
+    return Card.filled(
+      shape: _noBorderShape,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '电费显示',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '输入宿舍电表号后在主页可看到剩余电量',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _ammeterController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    decoration: const InputDecoration(
+                      hintText: '输入电表号',
+                      isDense: true,
+                    ),
+                    onSubmitted: (_) => _saveAmmeter(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton.tonalIcon(
+                  onPressed: _isSavingAmmeter
+                      ? null
+                      : () {
+                          Haptics.light();
+                          _saveAmmeter();
+                        },
+                  icon: _isSavingAmmeter
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: const Text('保存'),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

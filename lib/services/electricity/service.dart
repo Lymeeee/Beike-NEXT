@@ -88,8 +88,8 @@ class ElectricityService {
 
   /// Query the API and record the result. Re-querying on the same day updates
   /// today's record instead of appending a duplicate.
-  Future<({List<RemainingElectricity> history, String message})> fetchAndRecord(
-      int ammeterNumber) async {
+  /// Returns the updated history, whose last entry is the latest reading.
+  Future<List<RemainingElectricity>> fetchAndRecord(int ammeterNumber) async {
     final history = await getHistory(ammeterNumber);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -126,8 +126,12 @@ class ElectricityService {
     final file = await _historyFile(ammeterNumber);
     await file.writeAsString(jsonEncode(history.map((e) => e.toJson()).toList()));
 
-    return (history: history, message: hasToday ? '今日数据已更新' : '获取成功');
+    return history;
   }
 
   DateTime _dayOf(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  void dispose() {
+    _dio.close();
+  }
 }
